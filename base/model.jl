@@ -10,13 +10,6 @@ end
 n_arrived(model) = length(model.people) - length(model.migrants)
 
 
-function simulate!(model :: Model, steps, par)
-	for i in 1:steps
-		step_simulation!(model, i, par)
-	end
-end
-
-
 
 # TODO this could be way more sophisticated
 #function step_city!(c, step, par)
