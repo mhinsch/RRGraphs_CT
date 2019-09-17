@@ -17,60 +17,45 @@ function simulate!(model :: Model, steps, par)
 end
 
 
-function step_simulation!(model::Model, step, par)
-	handle_departures!(model, par)
-
-	for a in model.migrants
-		step_agent!(a, model, par)
-	end
-
-	for l in model.world.cities
-		step_city!(l, step, par)
-	end
-
-	handle_arrivals!(model, par)
-end
 
 # TODO this could be way more sophisticated
-function step_city!(c, step, par)
-	c.traffic = c.traffic * par.ret_traffic + c.cur_count * (1.0 - par.ret_traffic)
-	c.cur_count = 0
-end
+#function step_city!(c, step, par)
+#	c.traffic = c.traffic * par.ret_traffic + c.cur_count * (1.0 - par.ret_traffic)
+#	c.cur_count = 0
+#end
 
 
 # *** entry/exit
 
 
-function handle_departures!(model::Model, par)
-	p_dist = Poisson(par.rate_dep)
-	n = rand(p_dist)
-	for i in 1:n
-		x = 1
-		entry = rand(model.world.entries)
-		# starts as in transit => will explore in first step
-		agent = Agent(entry, par.ini_capital)
-		agent.info_loc = fill(Unknown, length(model.world.cities))
-		agent.info_link = fill(UnknownLink, length(model.world.links))
+function add_migrant!(model::Model, par)
+	x = 1
+	entry = rand(model.world.entries)
+	# starts as in transit => will explore in first step
+	agent = Agent(entry, par.ini_capital)
+	agent.info_loc = fill(Unknown, length(model.world.cities))
+	agent.info_link = fill(UnknownLink, length(model.world.links))
 
-		# add initial contacts
-		# (might have duplicates)
-		nc = min(length(model.people) ÷ 10, par.n_ini_contacts)
-		for c in 1:nc
-			push!(agent.contacts, model.people[rand(1:length(model.people))])
-		end
-
-		# some exits are known
-		# the only bit of initial global info so far
-		for l in model.world.exits
-			if rand() < par.p_know_target
-				explore_at!(agent, model.world, l, 0.5, false, par)
-			end
-		end
-
-		add_agent!(entry, agent)
-		push!(model.people, agent)
-		push!(model.migrants, agent)
+	# add initial contacts
+	# (might have duplicates)
+	nc = min(length(model.people) ÷ 10, par.n_ini_contacts)
+	for c in 1:nc
+		push!(agent.contacts, model.people[rand(1:length(model.people))])
 	end
+
+	# some exits are known
+	# the only bit of initial global info so far
+	for l in model.world.exits
+		if rand() < par.p_know_target
+			explore_at!(agent, model.world, l, 0.5, false, par)
+		end
+	end
+
+	add_agent!(entry, agent)
+	push!(model.people, agent)
+	push!(model.migrants, agent)
+
+	agent
 end
 
 
@@ -84,5 +69,6 @@ function handle_arrivals!(model::Model, par)
 		end
 	end
 end
+
 
 include("simulation_agents.jl")

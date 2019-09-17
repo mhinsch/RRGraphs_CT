@@ -49,7 +49,8 @@ mutable struct AgentT{L}
 	info_target :: Vector{InfoLocation}
 	n_links :: Int
 	info_link :: Vector{InfoLink}
-	plan :: Vector{InfoLocation}
+	next :: InfoLocation
+	#plan :: Vector{InfoLocation}
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
@@ -191,4 +192,7 @@ function move!(world, agent, loc)
 	add_agent!(loc, agent)
 end
 
+
+info2real(l::InfoLocation, world) = world.cities[l.id]
+info2real(l::InfoLink, world) = world.links[l.id]
 
