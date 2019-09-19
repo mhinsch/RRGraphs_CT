@@ -172,26 +172,18 @@ end
 function plan_simple!(agent, par)
 	loc = info_current(agent)
 
-	quals = fill(0.0, length(loc.links)+1)
-	quals[1] = quality(loc, par)
+	quals = fill(0.0, length(loc.links))
 
 	for i in eachindex(loc.links)
 		q = quality(loc.links[i], otherside(loc.links[i], loc), par)
 		@assert !isnan(q)
-		quals[i+1] = quals[i] + q
+		quals[i] = q + (i > 1 ? quals[i-1] : 0.0)
 	end
 
-	best = 0
 	if quals[end] > 0
 		r = rand() * (quals[end] - 0.0001)
 		# -1 because first el is stay
-		best = findfirst(x -> x>r, quals) - 1
-	end
-
-	# stay
-	if best == 0 
-		agent.next = loc
-		return agent
+		best = findfirst(x -> x>r, quals)
 	end
 
 	agent.next = otherside(loc.links[best], loc)
@@ -312,7 +304,8 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 	# gain information on local properties
 	# stochasticity?
 	inf.resources = update(inf.resources, loc.resources, speed)
-	inf.quality = update(inf.quality, current_quality(loc, par), speed)
+	inf.quality = update(inf.quality, loc.quality, speed)
+	#inf.quality = update(inf.quality, current_quality(loc, par), speed)
 
 	# only location, no links, done
 	if ! allow_indirect
@@ -347,7 +340,6 @@ end
 # ********************
 # information exchange
 # ********************
-
 
 # add new link as a copy from existing one (from other agent)
 # currently requires that both endpoints are known
@@ -539,6 +531,42 @@ end
 #	end
 #end
 
+maxed(agent, par) = length(agent.contacts) >= par.n_contacts_max
+
+# *********************
+# event functions/rates
+# *********************
+
+# we use 1 here as agent.next might be the agent's current location
+function move_rate(agent, par)
+	loc = info_current(agent)
+
+	qs = mapreduce(+, loc.links) do l
+			quality(l, otherside(l, loc), par)
+		end
+
+	qs2 = mapreduce(+, loc.links) do l
+			quality(l, otherside(l, loc), par)^2
+		end
+	
+	q = quality(loc, par)
+
+	if qs == 0.0
+		return 0.0
+	end
+
+	q > 0.0 ? qs2/(q * qs) : 1.0
+end
+
+
+# same as ML3
+transit_rate(agent, par) = 1.0
+
+rate_contacts(agent, par) = length(agent.contacts) * par.p_keep_contact
+
+rate_talk(agent, par) = length(agent.contacts) * par.p_info_contacts
+
+
 
 function costs_stay!(agent, par)
 	agent.capital += par.ben_resources * agent.loc.resources - par.costs_stay
@@ -553,8 +581,13 @@ function explore_stay!(agent, world, par)
 	agent
 end
 
-function meet_locally!(agent, par)
+function meet_locally!(agent, world, par)
 	pop = agent.loc.people
+
+	# agents might have left in the meantime
+	if length(pop) == 1
+		return agent
+	end
 
 	while (a = rand(pop)) == agent end
 
@@ -563,13 +596,13 @@ function meet_locally!(agent, par)
 		add_contact!(a, agent)
 	end
 
-	exchange_info!(agent, a, par)
+	exchange_info!(agent, a, world, par)
 
 	agent
 end
 
-function talk_once!(agent, par)
-	exchange_info!(agent, rand(agent.contacts))
+function talk_once!(agent, world, par)
+	exchange_info!(agent, rand(agent.contacts), world, par)
 
 	agent
 end
@@ -605,7 +638,7 @@ function finish_move!(agent, world, par)
 	loc = info2real(agent.next, world)
 	move!(world, agent, loc)
 
-	if loc.typ == EXIT
+	if arrived(agent)
 		return nothing
 	end
 

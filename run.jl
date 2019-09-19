@@ -6,27 +6,30 @@ push!(LOAD_PATH, pwd())
 
 using Analysis
 
-include("base/world.jl")
-include("base/init.jl")
 include("base/simulation.jl")
-include("base/setup.jl")
+include("base/args.jl")
 
 
-function run(p, n_steps, log_file)
+function run(p, stop, log_file)
 	Random.seed!(p.rand_seed_world)
 	w = create_world(p);
 
 	Random.seed!(p.rand_seed_sim)
 	m = Model(w, Agent[], Agent[]);
 
-	for i in 1:n_steps
-		step_simulation!(m, i, p)
-		analyse_log(m, log_file)
-		println(i)
+	sim = Simulation(m, p)
+
+	t = 0.0
+	start(sim)
+	while t < stop
+		upto!(sim.scheduler, t + 1.0)
+		t += 1.0
+		analyse_log(sim.model, log_file)
+		println(t, " ", time_now(sim.scheduler))
 		flush(stdout)
 	end
 
-	m
+	sim
 end
 
 
@@ -36,10 +39,10 @@ include(get_parfile())
 const arg_settings = ArgParseSettings("run simulation", autofix_names=true)
 
 @add_arg_table arg_settings begin
-	"--n-steps", "-n"
-		help = "number of simulation steps" 
-		arg_type = Int
-		default = 300
+	"--stop-time", "-t"
+		help = "at which time to stop the simulation" 
+		arg_type = Float64
+		default = 50.0
 	"--par-file", "-p"
 		help = "file name for parameters"
 		default = "params.txt"
@@ -67,7 +70,7 @@ const p = create_from_args(args, Params)
 save_params(args[:par_file], p)
 
 
-const n_steps = args[:n_steps] 
+const t_stop = args[:stop_time] 
 
 const logf = open(args[:log_file], "w")
 const cityf = open(args[:city_file], "w")
@@ -76,9 +79,9 @@ const linkf = open(args[:link_file], "w")
 
 prepare_log(logf)
 #prepare_out(outf)
-const m = run(p, n_steps, logf)
+const sim = run(p, t_stop, logf)
 
-analyse_world(m, cityf, linkf)
+analyse_world(sim.model, cityf, linkf)
 
 #close(outf)
 close(logf)

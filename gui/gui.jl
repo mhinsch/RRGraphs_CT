@@ -61,13 +61,9 @@ const pixels_bg = Vector{UInt32}(undef, panel_size*panel_size)
 const pixels = Vector{UInt32}(undef, panel_size*panel_size)
 
 push!(LOAD_PATH, replace(pwd(), "/gui" => ""))
-include("../base/world.jl")
-include("../base/init.jl")
 include("../base/simulation.jl")
 include("../base/draw.jl")
-include("../base/params.jl")
-include("../base/setup.jl")
-
+include("../base/args.jl")
 
 include("../" * get_parfile())
 	
@@ -75,10 +71,10 @@ include("../" * get_parfile())
 const arg_settings = ArgParseSettings("run simulation", autofix_names=true)
 
 @add_arg_table arg_settings begin
-	"--n-steps", "-n"
-		help = "number of simulation steps" 
-		arg_type = Int
-		default = 0
+	"--stop-time", "-t"
+		help = "at which time to stop the simulation" 
+		arg_type = Float64 
+		default = 0.0
 end
 
 add_arg_group(arg_settings, "simulation parameters")
@@ -86,7 +82,7 @@ fields_as_args!(arg_settings, Params)
 
 const args = parse_args(arg_settings, as_symbols=true)
 const parameters = create_from_args(args, Params)
-const n_steps = args[:n_steps] 
+const t_stop = args[:stop_time] 
 
 
 using Random
@@ -104,13 +100,20 @@ const canvas_bg = Canvas(pixels_bg, panel_size)
 clear!(canvas_bg)
 draw_bg!(canvas_bg, model)
 
+const sim = Simulation(model, parameters)
+
+t = 0.0
+start(sim)
+
 count = 0
-
 while true
-	global count 
-	count += 1
+	global t, count
+	
+	upto!(sim.scheduler, t + 1.0)
+	
+	t += 1.0
 
-	if count == n_steps
+	if t_stop > 0 && t >= t_stop
 		break
 	end
 	
@@ -121,8 +124,6 @@ while true
 	end
 
 
-	step_simulation!(model, count, parameters)
-
 	println(count, " #migrants: ", length(model.migrants), 
 		" #arrived: ", length(model.people) - length(model.migrants))
 
@@ -130,11 +131,13 @@ while true
 	draw_people!(canvas, model)
 	update!(top_left, canvas.pixels)
 
-	if count % 10 == 0
+	if count > 10
 		clear!(canvas)
 		draw_visitors!(canvas, model)
 		update!(top_right, canvas.pixels)
+		count = 0
 	end
+	count += 1
 
 	clear!(canvas)
 	agent = draw_rand_knowledge!(canvas, model)

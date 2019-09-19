@@ -1,6 +1,9 @@
 using Util
 using Distributions
 
+include("entities.jl")
+include("setup.jl")
+
 mutable struct Model
 	world :: World
 	people :: Vector{Agent}
@@ -28,6 +31,8 @@ function add_migrant!(model::Model, par)
 	agent = Agent(entry, par.ini_capital)
 	agent.info_loc = fill(Unknown, length(model.world.cities))
 	agent.info_link = fill(UnknownLink, length(model.world.links))
+	# explore once
+	explore_stay!(agent, model.world, par)
 
 	# add initial contacts
 	# (might have duplicates)
@@ -53,7 +58,7 @@ end
 
 
 # all agents at target get removed from world (but remain in network)
-function handle_arrivals!(model::Model, par)
+function handle_arrivals!(model::Model)
 	for i in length(model.migrants):-1:1
 		if arrived(model.migrants[i])
 			agent = model.migrants[i]
@@ -61,7 +66,10 @@ function handle_arrivals!(model::Model, par)
 			remove_agent!(model.world, agent)
 		end
 	end
+
+	model
 end
 
 
-include("simulation_agents.jl")
+include("model_agents.jl")
+include("scheduling.jl")

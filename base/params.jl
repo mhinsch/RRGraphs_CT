@@ -66,7 +66,9 @@ const VF = Vector{Float64}
 	speed_expl_stay :: Float64	= 1.0
 	"speed of exploration while moving"
 	speed_expl_move :: Float64	= 1.0
+	rate_explore_loc :: Float64	= 1.0
 
+	rate_costs_stay	:: Float64	= 1.0
 	"resource costs of staying"
 	costs_stay		:: Float64	= 1.0
 	"benefit of resource uptake"
