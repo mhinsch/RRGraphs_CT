@@ -9,10 +9,6 @@ include("world_path_util.jl")
 
 "Quality of a link `link` to location `loc`. Calls `quality(::Infolocation,...)`."
 function quality(link :: InfoLink, loc :: InfoLocation, par)
-	#@assert known(link)
-	#@assert known(loc)
-	#@assert friction(link) >= 0
-	#@assert !isnan(friction(link))
 	# [0:3]					     [0:1.5], [0:15]	
 	quality(loc, par) / (1.0 + friction(link)*par.qual_weight_frict)
 end
@@ -72,58 +68,59 @@ end
 #end
 
 
-#function make_plan!(agent, par)
-#	if agent.info_target == []
-#		agent.plan = []
-#	else
-#		if par.path_use_quality
-#			agent.plan, count = Pathfinding.path_Astar(info_current(agent), agent.info_target, 
-#			(l1, l2)->costs_quality(l1, l2, par), path_costs_estimate, each_neighbour)
-#		else
-#			agent.plan, count = Pathfinding.path_Astar(info_current(agent), agent.info_target, 
-#				path_costs, path_costs_estimate, each_neighbour)
-#		end
-#	end
-#end
+function make_plan!(agent, par)
+	# no plan if we don't know any targets
+	if agent.info_target == []
+		agent.plan = []
+	else
+		if par.path_use_quality
+			agent.plan, count = Pathfinding.path_Astar(info_current(agent), agent.info_target, 
+			(l1, l2)->costs_quality(l1, l2, par), path_costs_estimate, each_neighbour)
+		else
+			agent.plan, count = Pathfinding.path_Astar(info_current(agent), agent.info_target, 
+				path_costs, path_costs_estimate, each_neighbour)
+		end
+	end
+end
 
-#function plan_costs!(agent, par)
-#	make_plan!(agent, par)
-#
-#	if agent.plan != []
-#		agent.planned += 1
-#		return agent
-#	end
-#
-#	loc = info_current(agent)
-#
-#	if length(loc.links) == 0
-#		return agent
-#	end
-#
-#	quals = Float64[]
-#	sizehint!(quals, length(loc.links))
-#	prev = 0.0
-#
-#	for l in loc.links
-#		c = costs_quality(l, otherside(l, loc), par) + 0.000001
-#		#@assert friction(loc.links[i]) > 0
-#		#@assert !isnan(c)
-#		#@assert c > 0
-#		push!(quals, 1.0/c + prev)
-#		prev = quals[end]
-#	end
-#
-#	best = 0
-#	if quals[end] > 0.0
-#		r = rand() * (quals[end] - 0.000001)
-#		best = findfirst(x -> x>r, quals)
-#	end
-#
-#	# go to best neighbouring location 
-#	agent.plan = [otherside(loc.links[best], loc), loc]
-#
-#	agent
-#end
+function plan_costs!(agent, par)
+	make_plan!(agent, par)
+
+	if agent.plan != []
+		agent.planned += 1
+		return agent
+	end
+
+	loc = info_current(agent)
+
+	if length(loc.links) == 0
+		return agent
+	end
+
+	quals = Float64[]
+	sizehint!(quals, length(loc.links))
+	prev = 0.0
+
+	for l in loc.links
+		c = costs_quality(l, otherside(l, loc), par) + 0.000001
+		#@assert friction(loc.links[i]) > 0
+		#@assert !isnan(c)
+		#@assert c > 0
+		push!(quals, 1.0/c + prev)
+		prev = quals[end]
+	end
+
+	best = 0
+	if quals[end] > 0.0
+		r = rand() * (quals[end] - 0.000001)
+		best = findfirst(x -> x>r, quals)
+	end
+
+	# go to best neighbouring location 
+	agent.plan = [otherside(loc.links[best], loc), loc]
+
+	agent
+end
 
 
 #function plan_old!(agent, par)
@@ -169,25 +166,25 @@ end
 #end
 
 
-function plan_simple!(agent, par)
-	loc = info_current(agent)
-
-	quals = fill(0.0, length(loc.links))
-
-	for i in eachindex(loc.links)
-		q = quality(loc.links[i], otherside(loc.links[i], loc), par)
-		@assert !isnan(q)
-		quals[i] = q + (i > 1 ? quals[i-1] : 0.0)
-	end
-
-	if quals[end] > 0
-		r = rand() * (quals[end] - 0.0001)
-		# -1 because first el is stay
-		best = findfirst(x -> x>r, quals)
-	end
-
-	agent.next = otherside(loc.links[best], loc)
-end
+#function plan_simple!(agent, par)
+#	loc = info_current(agent)
+#
+#	quals = fill(0.0, length(loc.links))
+#
+#	for i in eachindex(loc.links)
+#		q = quality(loc.links[i], otherside(loc.links[i], loc), par)
+#		@assert !isnan(q)
+#		quals[i] = q + (i > 1 ? quals[i-1] : 0.0)
+#	end
+#
+#	if quals[end] > 0
+#		r = rand() * (quals[end] - 0.0001)
+#		# -1 because first el is stay
+#		best = findfirst(x -> x>r, quals)
+#	end
+#
+#	agent.next = otherside(loc.links[best], loc)
+#end
 
 
 #function decide_move(agent::Agent, world::World, par)
@@ -341,35 +338,6 @@ end
 # information exchange
 # ********************
 
-# add new link as a copy from existing one (from other agent)
-# currently requires that both endpoints are known
-function maybe_learn!(agent, link_orig :: InfoLink)
-	# get corresponding loc info from naive individual
-	l1_info = agent.info_loc[link_orig.l1.id] 
-	l2_info = agent.info_loc[link_orig.l2.id] 
-
-	# check if the agent knows both end points, otherwise abort
-	if !known(l1_info) || !known(l2_info)
-		return UnknownLink	
-	end
-
-	info_link = InfoLink(link_orig.id, l1_info, l2_info, link_orig.friction)
-	add_info!(agent, info_link)
-	connect!(l1_info, info_link)
-	connect!(l2_info, info_link)
-
-	info_link
-end
-
-
-#function consensus(val1::TrustedF, val2::TrustedF) :: TrustedF
-#	sum_t = max(val1.trust + val2.trust, 0.0001)
-#	v = (discounted(val1) + discounted(val2)) / sum_t
-#	t = max(val1.trust, val2.trust)
-#
-#	TrustedF(v, t)
-#end
-
 
 struct InfoPars
 	convince :: Float64
@@ -455,9 +423,9 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		loc = world.cities[l]
 
 		if !known(info1)
-			discover!(a1, loc, par)
+			info1 = discover!(a1, loc, par)
 		elseif !known(info2) && !arr
-			discover!(a2, loc, par)
+			info2 = discover!(a2, loc, par)
 		end
 
 		# both have knowledge at l, compare by trust and transfer accordingly
@@ -492,21 +460,17 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		# only one agent knows the link
 		if !known(info1)
 			if knows(a1, link.l1) && knows(a1, link.l2)
-				discover!(a1, link, link.l1, par)
+				info1 = discover!(a1, link, link.l1, par)
 			end
 		elseif !known(info2) && !arr
 			if knows(a2, link.l1) && knows(a2, link.l2)
-				discover!(a2, link, link.l1, par)
+				info2 = discover!(a2, link, link.l1, par)
 			end
 		end
 		
 		# both have knowledge at l, compare by trust and transfer accordingly
 		if known(info1) && known(info2)
-			#@assert info1.friction.value > 0
-			#@assert info2.friction.value > 0
 			frict1, frict2 = exchange_beliefs(info1.friction, info2.friction, p1, p2)
-			#@assert frict1.value > 0 "$(info1.friction.value), $(info1.friction.trust), $(info2.friction.value), $(info2.friction.trust)"
-			#@assert frict2.value > 0
 			info1.friction = frict1
 			if !arr
 				info2.friction = frict2
@@ -541,28 +505,31 @@ maxed(agent, par) = length(agent.contacts) >= par.n_contacts_max
 function move_rate(agent, par)
 	loc = info_current(agent)
 
-	qs = mapreduce(+, loc.links) do l
-			quality(l, otherside(l, loc), par)
-		end
+	if isempty(loc.links)
+		return 0.0
+	end
 
-	qs2 = mapreduce(+, loc.links) do l
-			quality(l, otherside(l, loc), par)^2
-		end
-	
-	q = quality(loc, par)
+	qs = 0.0; qs2 = 0.0
+	for l in loc.links
+		q = quality(l, otherside(l, loc), par)
+		qs += q
+		qs2 += q*q
+	end
 
 	if qs == 0.0
 		return 0.0
 	end
 
-	q > 0.0 ? qs2/(q * qs) : 1.0
+	qh = quality(loc, par)
+
+	qh > 0.0 ? qs2/(qh * qs) : 1.0
 end
 
 
 # same as ML3
 transit_rate(agent, par) = 1.0
 
-rate_contacts(agent, par) = length(agent.contacts) * par.p_keep_contact
+rate_contacts(loc, par) = (length(loc.people)-1) * par.p_keep_contact
 
 rate_talk(agent, par) = length(agent.contacts) * par.p_info_contacts
 
@@ -571,50 +538,58 @@ rate_talk(agent, par) = length(agent.contacts) * par.p_info_contacts
 function costs_stay!(agent, par)
 	agent.capital += par.ben_resources * agent.loc.resources - par.costs_stay
 
-	agent
+	[agent]
 end
 
 # explore while staying at a location
 function explore_stay!(agent, world, par)
 	explore_at!(agent, world, agent.loc, par.speed_expl_stay, true, par)
 
-	agent
+	[agent]
 end
 
 function meet_locally!(agent, world, par)
+	@assert ! arrived(agent)
 	pop = agent.loc.people
 
-	# agents might have left in the meantime
-	if length(pop) == 1
-		return agent
-	end
+	# with rescheduling this should not happen
+	@assert length(pop) > 1
 
 	while (a = rand(pop)) == agent end
+
+	resch = [agent]
 
 	add_contact!(agent, a)
 	if !maxed(a, par)
 		add_contact!(a, agent)
+		push!(resch, a)
 	end
 
 	exchange_info!(agent, a, world, par)
 
-	agent
+	resch
 end
+
 
 function talk_once!(agent, world, par)
-	exchange_info!(agent, rand(agent.contacts), world, par)
+	@assert ! arrived(agent)
+	other = rand(agent.contacts)
 
-	agent
+	exchange_info!(agent, other, world, par)
+
+	(arrived(other) ? [agent] : [agent, other])
 end
+
 
 function costs_move!(agent, link :: Link, par)
 	agent.capital -= par.costs_move * link.friction
 
-	agent
+	[agent]
 end
 
 
 function start_move!(agent, world, par)
+	@assert ! arrived(agent)
 	agent.in_transit = true
 
 	plan_simple!(agent, par)
@@ -628,21 +603,30 @@ function start_move!(agent, world, par)
 
 	costs_move!(agent, link, par)
 
-	agent
+	[agent]
 end
 
 
 function finish_move!(agent, world, par)
 	agent.in_transit = false
 
-	loc = info2real(agent.next, world)
-	move!(world, agent, loc)
+	prev = agent.loc
+	next = info2real(agent.next, world)
+
+	@assert next != prev
+
+	affected_next = next.people
+	move!(world, agent, next)
+
+	affected_prev = prev.people
 
 	if arrived(agent)
-		return nothing
+		return affected_prev
 	end
 
-	agent
+	[agent; affected_next; affected_prev]
 end
+
+
 
 
