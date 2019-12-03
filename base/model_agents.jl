@@ -42,21 +42,21 @@ end
 #end
 
 
-#function costs_quality(loc :: InfoLocation, par)
-#	(par.path_weight_frict + 3.0) / 
-#		(par.path_weight_frict + quality(loc, par))
-#end
+function costs_quality(loc :: InfoLocation, par)
+	(par.path_weight_frict + 3.0) / 
+		(par.path_weight_frict + quality(loc, par))
+end
 
 # TODO this should be affected by trust as well
-#function costs_quality(link :: InfoLink, loc :: InfoLocation, par)
-#	friction(link) * costs_quality(loc, par)
-#end
+function costs_quality(link :: InfoLink, loc :: InfoLocation, par)
+	friction(link) * costs_quality(loc, par)
+end
 
 #"Movement costs from `l1` to `l2`, taking into account `l2`'s quality."
-#function costs_quality(l1::InfoLocation, l2::InfoLocation, par)
-#	link = find_link(l1, l2)
-#	costs_quality(link, l2, par)
-#end
+function costs_quality(l1::InfoLocation, l2::InfoLocation, par)
+	link = find_link(l1, l2)
+	costs_quality(link, l2, par)
+end
 
 #function costs_quality(plan :: Vector{InfoLocation}, par)
 #	c = 0.0
@@ -199,21 +199,21 @@ end
 
 
 # explore while moving one step
-#function explore_move!(agent, world, dest, par)
-#	info_loc2 :: InfoLocation, l = explore_at!(agent, world, dest, par.speed_expl_move, false, par)
-#	info_loc1 :: InfoLocation = info_current(agent)
-#
-#	link = find_link(agent.loc, dest)
-#	inf = info(agent, link)
-#	if !known(inf)
-#		# TODO stochastic error
-#		inf = discover!(agent, link, agent.loc, par)
-#	end
-#
-#	inf.friction = TrustedF(link.friction, par.trust_travelled)
-#
-#	agent
-#end
+function explore_move!(agent, world, dest, par)
+	info_loc2 :: InfoLocation, l = explore_at!(agent, world, dest, par.speed_expl_move, false, par)
+	info_loc1 :: InfoLocation = info_current(agent)
+
+	link = find_link(agent.loc, dest)
+	inf = info(agent, link)
+	if !known(inf)
+		# TODO stochastic error
+		inf = discover!(agent, link, agent.loc, par)
+	end
+
+	inf.friction = TrustedF(link.friction, par.trust_travelled)
+
+	agent
+end
 
 
 # connect loc and link (if not already connected)
