@@ -13,7 +13,7 @@ using DataStructures
 "Find the least-cost path from `start` to `target` using cost function
 `path_costs` and cost heuristic function `path_costs_estimate`. An iterator
 function to find a nodes' neighbours has to be provided in `each_neighbour`.
-Returns a vector `start`, node, ..., `target` and the number of iterations used
+Returns a vector `target`, node, ..., `start` and the number of iterations used
 to find the path in a tuple."
 function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbour)
 	done = Set{typeof(start)}()
