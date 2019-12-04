@@ -1,11 +1,9 @@
 using Random
 
 push!(LOAD_PATH, pwd())
-include("base/world.jl")
-include("base/init.jl")
+
 include("base/simulation.jl")
-include("base/params.jl")
-include("base/setup.jl")
+include("base/args.jl")
 
 
 function str_to_argv(str)
@@ -32,6 +30,8 @@ function basic_setup(argv = [])
 
 	Random.seed!(p.rand_seed_sim)
 	m = Model(w, Agent[], Agent[]);
+
+	sim = Simulation(m, p)
 	
-	p, m
+	p, sim
 end
