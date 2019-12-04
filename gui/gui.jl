@@ -46,7 +46,7 @@ function render(p :: Panel)
 end
 
 
-const panel_size = 512
+const panel_size = 1024
 
 const win_size = 2 * panel_size
 
