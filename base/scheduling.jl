@@ -1,6 +1,6 @@
 
 
-@processes sim model::Model begin
+@processes RRGraph sim model::Model begin
 	@poisson(sim.par.rate_dep)				~
 		true				=>		begin 
 				resch = add_migrant!(model, sim.par)
@@ -9,7 +9,7 @@
 end
 
 
-@processes sim agent::Agent begin
+@processes RRGraph sim agent::Agent begin
 	@poisson(sim.par.rate_costs_stay)		~ 
 		! agent.in_transit	=>		costs_stay!(agent, sim.par)
 
@@ -24,7 +24,7 @@ end
 
 	@poisson(move_rate(agent, sim.par))		~
 		! agent.in_transit 	=> 		begin
-				agent.loc.move_count += 1
+				#agent.loc.move_count += 1
 				start_move!(agent, sim.model.world, sim.par)
 			end
 	
