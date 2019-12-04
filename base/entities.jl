@@ -49,8 +49,7 @@ mutable struct AgentT{L}
 	info_target :: Vector{InfoLocation}
 	n_links :: Int
 	info_link :: Vector{InfoLink}
-	next :: InfoLocation
-	#plan :: Vector{InfoLocation}
+	plan :: Vector{InfoLocation}
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
@@ -59,7 +58,7 @@ mutable struct AgentT{L}
 	planned :: Int
 end
 
-AgentT{L}(l::L, c :: Float64) where {L} = AgentT{L}(l, false, 0, [], [], 0, [], Unknown, c, [], 0, 0)
+AgentT{L}(l::L, c :: Float64) where {L} = AgentT{L}(l, false, 0, [], [], 0, [], [], c, [], 0, 0)
 
 
 target(agent) = length(agent.info_target) > 0 ? agent.info_target[1] : Unknown

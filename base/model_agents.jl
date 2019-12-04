@@ -592,9 +592,11 @@ function start_move!(agent, world, par)
 	@assert ! arrived(agent)
 	agent.in_transit = true
 
-	plan_simple!(agent, par)
+	#plan_simple!(agent, par)
+	plan_costs!(agent, par)
 
-	loc = info2real(agent.next, world)
+	# end == current, end-1 == next
+	loc = info2real(agent.plan[end-1], world)
 	link = find_link(agent.loc, loc)
 	
 	# update traffic counter
@@ -611,7 +613,9 @@ function finish_move!(agent, world, par)
 	agent.in_transit = false
 
 	prev = agent.loc
-	next = info2real(agent.next, world)
+	next = info2real(agent.plan[end-1], world)
+	# end remains current location
+	pop!(agent.plan)
 
 	@assert next != prev
 

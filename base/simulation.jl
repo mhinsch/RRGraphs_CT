@@ -14,4 +14,4 @@ scheduler(sim :: Simulation{PAR}) where {PAR} = sim.scheduler
 
 Simulation(model, par) = Simulation(PQScheduler{Float64}(), model, par)
 
-start(sim::Simulation) = spawn(sim.model, sim)
+start(sim::Simulation) = spawn_RRGraph(sim.model, sim)
