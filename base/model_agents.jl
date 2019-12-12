@@ -7,190 +7,55 @@ include("world_path_util.jl")
 # *********
 
 
-"Quality of a link `link` to location `loc`. Calls `quality(::Infolocation,...)`."
-function quality(link :: InfoLink, loc :: InfoLocation, par)
-	# [0:3]					     [0:1.5], [0:15]	
-	quality(loc, par) / (1.0 + friction(link)*par.qual_weight_frict)
-end
+#"Quality of a link `link` to location `loc`. Calls `quality(::Infolocation,...)`."
+#function quality(link :: InfoLink, loc :: InfoLocation, par)
+#	# [0:3]					     [0:1.5], [0:15]	
+#	quality(loc, par) / (1.0 + friction(link)*par.qual_weight_frict)
+#end
 
-"Quality of location `loc`."
+
+"Quality of location `loc` for global planning (no effect of x)."
 function quality(loc :: InfoLocation, par)
 	# [0:1]
 	discounted(loc.quality) + 
 		# [0:1]
-		loc.pos.x * par.qual_weight_x + 
-		# [0:1]
 		discounted(loc.resources) * par.qual_weight_res
 end
 
-# TODO properties of waystations
-#"Quality of a plan consisting of a sequence of locations."
-#function quality(plan :: Vector{InfoLocation}, par)
-#	if length(plan) == 2
-#		return quality(find_link(plan[2], plan[1]), plan[1], par)
-#	end
-#
-#	# start out with quality of target
-#	q = quality(plan[1],  par)
-#
-#	f = 0.0
-#	for i in 1:length(plan)-1
-#		f += find_link(plan[i], plan[i+1]).friction.value
-#	end
-#
-#	q / (1.0 + f * par.qual_weight_frict)
-#end
-
-
 function costs_quality(loc :: InfoLocation, par)
-	(par.path_weight_frict + 3.0) / 
-		(par.path_weight_frict + quality(loc, par))
+	(1.0 / par.path_penalty_loc + 2.0) / 
+		(1.0 / par.path_penalty_loc + quality(loc, par))
 end
 
-# TODO this should be affected by trust as well
+disc_friction(link) = 2 * link.friction.value - discounted(link.friction)
+
 function costs_quality(link :: InfoLink, loc :: InfoLocation, par)
-	friction(link) * costs_quality(loc, par)
+	disc_friction(link) * costs_quality(loc, par)
 end
 
-#"Movement costs from `l1` to `l2`, taking into account `l2`'s quality."
+"Movement costs from `l1` to `l2`, taking into account `l2`'s quality."
 function costs_quality(l1::InfoLocation, l2::InfoLocation, par)
 	link = find_link(l1, l2)
 	costs_quality(link, l2, par)
 end
 
-#function costs_quality(plan :: Vector{InfoLocation}, par)
-#	c = 0.0
-#	for i in 1:length(plan)-1
-#		# plan is sorted in reverse (target sits at 1)
-#		c += costs_quality(plan[i+1], plan[i], par)
-#	end
-#	c
-#end
+"Quality when looking for local improvement."
+function local_quality(loc :: InfoLocation, par)
+	par.qual_weight_x * loc.pos.x + quality(loc, par)
+end
 
 
 function make_plan!(agent, par)
 	# no plan if we don't know any targets
-	if agent.info_target == []
-		agent.plan = []
-	else
-		if par.path_use_quality
-			agent.plan, count = Pathfinding.path_Astar(info_current(agent), agent.info_target, 
-			(l1, l2)->costs_quality(l1, l2, par), path_costs_estimate, each_neighbour)
+	agent.plan, count =
+		if agent.info_target == []
+			[], 0
 		else
-			agent.plan, count = Pathfinding.path_Astar(info_current(agent), agent.info_target, 
-				path_costs, path_costs_estimate, each_neighbour)
+			Pathfinding.path_Astar(info_current(agent), agent.info_target, 
+				(l1, l2)->costs_quality(l1, l2, par), path_costs_estimate, each_neighbour)
 		end
-	end
 end
 
-function plan_costs!(agent, par)
-	make_plan!(agent, par)
-
-	if agent.plan != []
-		agent.planned += 1
-		return agent
-	end
-
-	loc = info_current(agent)
-
-	if length(loc.links) == 0
-		return agent
-	end
-
-	quals = Float64[]
-	sizehint!(quals, length(loc.links))
-	prev = 0.0
-
-	for l in loc.links
-		c = costs_quality(l, otherside(l, loc), par) + 0.000001
-		#@assert friction(loc.links[i]) > 0
-		#@assert !isnan(c)
-		#@assert c > 0
-		push!(quals, 1.0/c + prev)
-		prev = quals[end]
-	end
-
-	best = 0
-	if quals[end] > 0.0
-		r = rand() * (quals[end] - 0.000001)
-		best = findfirst(x -> x>r, quals)
-	end
-
-	# go to best neighbouring location 
-	agent.plan = [otherside(loc.links[best], loc), loc]
-
-	agent
-end
-
-
-#function plan_old!(agent, par)
-#	make_plan!(agent, par)
-#
-#	loc = info_current(agent)
-#
-#	quals = fill(0.0, length(loc.links)+1)
-#	quals[1] = quality(loc, par)
-#
-#	for i in eachindex(loc.links)
-#		q = quality(loc.links[i], otherside(loc.links[i], loc), par)
-#		@assert !isnan(q)
-#		quals[i+1] = quals[i] + q
-#	end
-#
-#	# plan goes into the choice as well
-#	if agent.plan != []
-#		push!(quals, quality(agent.plan, par) + quals[end])
-#	end
-#
-#	best = 0
-#	if quals[end] > 0
-#		r = rand() * (quals[end] - 0.0001)
-#		# -1 because first el is stay
-#		best = findfirst(x -> x>r, quals) - 1
-#	end
-#
-#	if best == length(quals) - 1 && agent.plan != []
-#		agent.planned += 1
-#	end
-#
-#	# either stay or use planned path
-#	if best == 0 ||
-#		(best == length(quals) - 1 && agent.plan != [])
-#		return agent
-#	end
-#
-#	# go to best neighbouring location 
-#	agent.plan = [otherside(loc.links[best], loc), loc]
-#
-#	agent
-#end
-
-
-#function plan_simple!(agent, par)
-#	loc = info_current(agent)
-#
-#	quals = fill(0.0, length(loc.links))
-#
-#	for i in eachindex(loc.links)
-#		q = quality(loc.links[i], otherside(loc.links[i], loc), par)
-#		@assert !isnan(q)
-#		quals[i] = q + (i > 1 ? quals[i-1] : 0.0)
-#	end
-#
-#	if quals[end] > 0
-#		r = rand() * (quals[end] - 0.0001)
-#		# -1 because first el is stay
-#		best = findfirst(x -> x>r, quals)
-#	end
-#
-#	agent.next = otherside(loc.links[best], loc)
-#end
-
-
-#function decide_move(agent::Agent, world::World, par)
-	# end is current location
-#	info2real(agent.plan[end-1])
-#end
 
 
 # ***********
@@ -501,28 +366,20 @@ maxed(agent, par) = length(agent.contacts) >= par.n_contacts_max
 # event functions/rates
 # *********************
 
-# we use 1 here as agent.next might be the agent's current location
 function move_rate(agent, par)
 	loc = info_current(agent)
 
-	if isempty(loc.links)
+	# don't know where to go, wait
+	if isempty(loc.links) || isempty(agent.plan)
 		return 0.0
 	end
 
-	qs = 0.0; qs2 = 0.0
-	for l in loc.links
-		q = quality(l, otherside(l, loc), par)
-		qs += q
-		qs2 += q*q
-	end
-
-	if qs == 0.0
+	if agent.capital < par.save_thresh && income(agent.loc, par) > par.save_income
 		return 0.0
 	end
 
-	qh = quality(loc, par)
-
-	qh > 0.0 ? qs2/(qh * qs) : 1.0
+	# we've made a decision and we've got enough money, let's go
+	1.0
 end
 
 
@@ -534,12 +391,59 @@ rate_contacts(loc, par) = (length(loc.people)-1) * par.p_keep_contact
 rate_talk(agent, par) = length(agent.contacts) * par.p_info_contacts
 
 
+income(loc, par) = par.ben_resources * loc.resources - par.costs_stay
 
 function costs_stay!(agent, par)
-	agent.capital += par.ben_resources * agent.loc.resources - par.costs_stay
+	agent.capital += income(agent.loc, par)
+	[agent]
+end
+
+
+function plan_costs!(agent, par)
+	make_plan!(agent, par)
+
+	if agent.plan != []
+		agent.planned += 1
+		return [agent]
+	end
+
+	# *** empty plan
+	
+	loc = info_current(agent)
+
+	if length(loc.links) == 0
+		return [agent]
+	end
+
+	quals = Float64[]
+	sizehint!(quals, length(loc.links)+1)
+	prev = 0.0
+
+	for l in loc.links
+		other = otherside(l, loc)
+		q = local_quality(other, par) * par.qual_tol_frict / (par.qual_tol_frict + disc_friction(l))
+		push!(quals, q + prev)
+		prev = quals[end]
+	end
+
+	# add current location, might be best option
+	q = local_quality(loc, par)
+	push!(quals, q + prev)
+
+	best = 0
+	if quals[end] > 0.0
+		r = rand() * (quals[end] - 0.000001)
+		best = findfirst(x -> x>r, quals)
+	end
+
+	if best < length(quals)
+		# go to best neighbouring location 
+		agent.plan = [otherside(loc.links[best], loc)]
+	end
 
 	[agent]
 end
+
 
 # explore while staying at a location
 function explore_stay!(agent, world, par)
@@ -592,11 +496,8 @@ function start_move!(agent, world, par)
 	@assert ! arrived(agent)
 	agent.in_transit = true
 
-	#plan_simple!(agent, par)
-	plan_costs!(agent, par)
-
 	# end == current, end-1 == next
-	loc = info2real(agent.plan[end-1], world)
+	loc = info2real(agent.plan[end], world)
 	link = find_link(agent.loc, loc)
 	
 	# update traffic counter
@@ -613,7 +514,7 @@ function finish_move!(agent, world, par)
 	agent.in_transit = false
 
 	prev = agent.loc
-	next = info2real(agent.plan[end-1], world)
+	next = info2real(agent.plan[end], world)
 	# end remains current location
 	pop!(agent.plan)
 
@@ -634,3 +535,107 @@ end
 
 
 
+# **********
+# deprecated
+# **********
+
+
+#function costs_quality(plan :: Vector{InfoLocation}, par)
+#	c = 0.0
+#	for i in 1:length(plan)-1
+#		# plan is sorted in reverse (target sits at 1)
+#		c += costs_quality(plan[i+1], plan[i], par)
+#	end
+#	c
+#end
+
+
+# TODO properties of waystations
+#"Quality of a plan consisting of a sequence of locations."
+#function quality(plan :: Vector{InfoLocation}, par)
+#	if length(plan) == 2
+#		return quality(find_link(plan[2], plan[1]), plan[1], par)
+#	end
+#
+#	# start out with quality of target
+#	q = quality(plan[1],  par)
+#
+#	f = 0.0
+#	for i in 1:length(plan)-1
+#		f += find_link(plan[i], plan[i+1]).friction.value
+#	end
+#
+#	q / (1.0 + f * par.qual_weight_frict)
+#end
+
+
+
+
+#function plan_old!(agent, par)
+#	make_plan!(agent, par)
+#
+#	loc = info_current(agent)
+#
+#	quals = fill(0.0, length(loc.links)+1)
+#	quals[1] = quality(loc, par)
+#
+#	for i in eachindex(loc.links)
+#		q = quality(loc.links[i], otherside(loc.links[i], loc), par)
+#		@assert !isnan(q)
+#		quals[i+1] = quals[i] + q
+#	end
+#
+#	# plan goes into the choice as well
+#	if agent.plan != []
+#		push!(quals, quality(agent.plan, par) + quals[end])
+#	end
+#
+#	best = 0
+#	if quals[end] > 0
+#		r = rand() * (quals[end] - 0.0001)
+#		# -1 because first el is stay
+#		best = findfirst(x -> x>r, quals) - 1
+#	end
+#
+#	if best == length(quals) - 1 && agent.plan != []
+#		agent.planned += 1
+#	end
+#
+#	# either stay or use planned path
+#	if best == 0 ||
+#		(best == length(quals) - 1 && agent.plan != [])
+#		return agent
+#	end
+#
+#	# go to best neighbouring location 
+#	agent.plan = [otherside(loc.links[best], loc), loc]
+#
+#	agent
+#end
+
+
+#function plan_simple!(agent, par)
+#	loc = info_current(agent)
+#
+#	quals = fill(0.0, length(loc.links))
+#
+#	for i in eachindex(loc.links)
+#		q = quality(loc.links[i], otherside(loc.links[i], loc), par)
+#		@assert !isnan(q)
+#		quals[i] = q + (i > 1 ? quals[i-1] : 0.0)
+#	end
+#
+#	if quals[end] > 0
+#		r = rand() * (quals[end] - 0.0001)
+#		# -1 because first el is stay
+#		best = findfirst(x -> x>r, quals)
+#	end
+#
+#	agent.next = otherside(loc.links[best], loc)
+#end
+
+
+#function decide_move(agent::Agent, world::World, par)
+	# end is current location
+#	info2real(agent.plan[end-1])
+#end

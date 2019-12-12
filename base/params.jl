@@ -48,6 +48,9 @@ const VF = Vector{Float64}
 	"prob. to know a target when entering"
 	p_know_target	:: Float64	= 0.0
 
+	"rate at which agents plan their movement"
+	rate_plan		:: Float64	= 1.0
+
 	"expected resources at newly found city"
 	res_exp			:: Float64	= 0.5
 	"expected quality at newly found city"
@@ -75,6 +78,10 @@ const VF = Vector{Float64}
 	ben_resources	:: Float64	= 5.0
 	"resource costs of moving"
 	costs_move		:: Float64	= 2.0
+	"when to start saving up capital"
+	save_thresh		:: Float64	= 100.0
+	"min income required to start saving"
+	save_income		:: Float64	= 1.0
 
 	"elasticity of traffic counter"
 	ret_traffic		:: Float64	= 0.8
@@ -84,13 +91,11 @@ const VF = Vector{Float64}
 	"effect of proximity to exit on perceived quality"
 	qual_weight_x	:: Float64	= 0.5
 	"effect of resources on perceived quality"
-	qual_weight_res	:: Float64 = 0.1
-	"effect of friction on perceived quality"
-	qual_weight_frict :: Float64 = 0.1
-	"whether to take into account quality while planning a path"
-	path_use_quality:: Bool		= true
-	"effect of friction on path costs"
-	path_weight_frict :: Float64 = 1.0
+	qual_weight_res	:: Float64 	= 0.1
+	"tolerance towards friction when looking for local improvement"
+	qual_tol_frict	:: Float64	= 2.0
+	"effect of low location quality on path costs"
+	path_penalty_loc :: Float64 = 1.0
 
 	"prob. to add an agent to contacts"
 	p_keep_contact 	:: Float64 	= 0.1
