@@ -15,6 +15,10 @@ end
 		! agent.in_transit	=>		
 			costs_stay!(agent, sim.par)
 
+	@poisson(sim.par.rate_plan)				~
+		! agent.in_transit =>
+			plan_costs!(agent, sim.par)
+
 	@poisson(sim.par.rate_explore_loc)		~
 		! agent.in_transit	=>		
 			explore_stay!(agent, sim.model.world, sim.par)
