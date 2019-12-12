@@ -13,15 +13,17 @@ using DataStructures
 "Find the least-cost path from `start` to `target` using cost function
 `path_costs` and cost heuristic function `path_costs_estimate`. An iterator
 function to find a nodes' neighbours has to be provided in `each_neighbour`.
-Returns a vector `target`, node, ..., `start` and the number of iterations used
+Returns a vector `target`, node, ... and the number of iterations used
 to find the path in a tuple."
 function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbour)
-	done = Set{typeof(start)}()
+	ELType = typeof(start)
 
-	known = PriorityQueue{typeof(start), Float64}()
+	done = Set{ELType}()
+
+	known = PriorityQueue{ELType, Float64}()
 	known[start] = path_costs_estimate(start, target)
 
-	previous = Dict{typeof(start), typeof(start)}()
+	previous = Dict{ELType, ELType}()
 
 	costs_sofar = Dict(start => 0.0)
 
@@ -69,7 +71,7 @@ function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbo
 		end
 	end
 
-	path = Vector{typeof(start)}()
+	path = ELType[]
 
 	if ! found
 		return path, count
@@ -77,13 +79,10 @@ function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbo
 
 	n = current # == found target
 
-	while true
+	# push all but the last node (==start) onto the stack
+	while haskey(previous, n)
 		push!(path, n)
-		if haskey(previous, n)
-			n = previous[n]
-		else
-			break
-		end
+		n = previous[n]
 	end
 
 	path, count
