@@ -15,7 +15,7 @@ end
 		! agent.in_transit	=>		
 			costs_stay!(agent, sim.par)
 
-	@poisson(sim.par.rate_plan)				~
+	@poisson(rate_plan(agent, sim.par))				~
 		! agent.in_transit =>
 			plan_costs!(agent, sim.par)
 
@@ -32,13 +32,13 @@ end
 			talk_once!(agent, sim.model.world, sim.par)
 
 	@poisson(move_rate(agent, sim.par))		~
-		! agent.in_transit 	=> 		
+		! agent.in_transit && ! isempty(agent.plan)	=> 		
 			begin
 				#agent.loc.move_count += 1
 				start_move!(agent, sim.model.world, sim.par)
 			end
 	
-	@poisson(transit_rate(agent, sim.par))	~
+	@poisson(rate_transit(agent, sim.par))	~
 		agent.in_transit	=> 		
 			begin
 				resch = finish_move!(agent, sim.model.world, sim.par)

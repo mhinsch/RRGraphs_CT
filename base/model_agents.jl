@@ -342,6 +342,11 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 			end
 		end
 	end
+
+	a1.out_of_date += 1
+	if ! arr
+		a2.out_of_date += 1
+	end
 end
 
 
@@ -369,11 +374,6 @@ maxed(agent, par) = length(agent.contacts) >= par.n_contacts_max
 function move_rate(agent, par)
 	loc = info_current(agent)
 
-	# don't know where to go, wait
-	if isempty(loc.links) || isempty(agent.plan)
-		return 0.0
-	end
-
 	if agent.capital < par.save_thresh && income(agent.loc, par) > par.save_income
 		return 0.0
 	end
@@ -384,11 +384,13 @@ end
 
 
 # same as ML3
-transit_rate(agent, par) = 1.0
+rate_transit(agent, par) = 1.0
 
 rate_contacts(loc, par) = (length(loc.people)-1) * par.p_keep_contact
 
 rate_talk(agent, par) = length(agent.contacts) * par.p_info_contacts
+
+rate_plan(agent, par) = agent.out_of_date * sim.par.rate_plan
 
 
 income(loc, par) = par.ben_resources * loc.resources - par.costs_stay
@@ -401,6 +403,8 @@ end
 
 function plan_costs!(agent, par)
 	make_plan!(agent, par)
+
+	agent.out_of_date = 1.0
 
 	if agent.plan != []
 		agent.planned += 1
@@ -448,6 +452,8 @@ end
 # explore while staying at a location
 function explore_stay!(agent, world, par)
 	explore_at!(agent, world, agent.loc, par.speed_expl_stay, true, par)
+
+	agent.out_of_date += 0.5
 
 	[agent]
 end
