@@ -386,7 +386,7 @@ end
 # same as ML3
 rate_transit(agent, par) = 1.0
 
-rate_contacts(loc, par) = (length(loc.people)-1) * par.p_keep_contact
+rate_contacts(agent, par) = (length(agent.loc.people)-1) * par.p_keep_contact
 
 rate_talk(agent, par) = length(agent.contacts) * par.p_info_contacts
 
@@ -467,17 +467,14 @@ function meet_locally!(agent, world, par)
 
 	while (a = rand(pop)) == agent end
 
-	resch = [agent]
-
 	add_contact!(agent, a)
 	if !maxed(a, par)
 		add_contact!(a, agent)
-		push!(resch, a)
 	end
 
 	exchange_info!(agent, a, world, par)
 
-	resch
+	[agent, a]
 end
 
 
@@ -502,40 +499,34 @@ function start_move!(agent, world, par)
 	@assert ! arrived(agent)
 	agent.in_transit = true
 
-	# end == current, end-1 == next
-	loc = info2real(agent.plan[end], world)
-	link = find_link(agent.loc, loc)
+	next = info2real(agent.plan[end], world)
+	link = find_link(agent.loc, next)
 	
 	# update traffic counter
 	link.count += 1
 	agent.steps += 1
 
 	costs_move!(agent, link, par)
+	remove_agent!(world, agent)
 
-	[agent]
+	[agent; agent.loc.people]
 end
 
 
 function finish_move!(agent, world, par)
 	agent.in_transit = false
 
-	prev = agent.loc
 	next = info2real(agent.plan[end], world)
-	# end remains current location
 	pop!(agent.plan)
 
-	@assert next != prev
-
-	affected_next = next.people
-	move!(world, agent, next)
-
-	affected_prev = prev.people
+	add_agent!(next, agent)
+	agent.loc = next
 
 	if arrived(agent)
-		return affected_prev
+		return []
 	end
 
-	[agent; affected_next; affected_prev]
+	next.people
 end
 
 

@@ -49,10 +49,19 @@ const WHITE = 0xFFFFFFFF
 function draw_people!(canvas, model)
 	xs, ys = size(canvas)
 	for p in model.migrants
-		x = scale(p.loc.pos.x, xs) + rand(-5:5)
-		x = limit(1, x, xs)
-		y = scale(p.loc.pos.y, ys) + rand(-5:5)
-		y = limit(1, y, ys)
+		if ! p.in_transit
+			x = scale(p.loc.pos.x, xs) + rand(-5:5)
+			x = limit(1, x, xs)
+			y = scale(p.loc.pos.y, ys) + rand(-5:5)
+			y = limit(1, y, ys)
+		else
+			next = p.plan[end]
+			x = scale((p.loc.pos.x + next.pos.x)/2, xs) + rand(-5:5)
+			x = limit(1, x, xs)
+			y = scale((p.loc.pos.y + next.pos.y)/2, ys) + rand(-5:5)
+			y = limit(1, y, ys)
+		end
+
 		put(canvas, x, y, WHITE)
 	end
 end

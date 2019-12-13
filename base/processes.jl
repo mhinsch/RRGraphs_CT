@@ -15,7 +15,7 @@ end
 		! agent.in_transit	=>		
 			costs_stay!(agent, sim.par)
 
-	@poisson(rate_plan(agent, sim.par))				~
+	@poisson(rate_plan(agent, sim.par))		~
 		! agent.in_transit =>
 			plan_costs!(agent, sim.par)
 
@@ -23,7 +23,7 @@ end
 		! agent.in_transit	=>		
 			explore_stay!(agent, sim.model.world, sim.par)
 	
-	@poisson(rate_contacts(agent.loc, sim.par))	~
+	@poisson(rate_contacts(agent, sim.par))	~
 		! agent.in_transit && ! maxed(agent, sim.par)	=> 
 			meet_locally!(agent, sim.model.world, sim.par)
 	
