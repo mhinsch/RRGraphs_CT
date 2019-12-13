@@ -12,34 +12,34 @@ end
 
 @processes RRGraph sim agent::Agent begin
 	@poisson(sim.par.rate_costs_stay)		~ 
-		! agent.in_transit	=>		
+		! in_transit(agent)					=>		
 			costs_stay!(agent, sim.par)
 
 	@poisson(rate_plan(agent, sim.par))		~
-		! agent.in_transit =>
+		! in_transit(agent)					=>
 			plan_costs!(agent, sim.par)
 
 	@poisson(sim.par.rate_explore_loc)		~
-		! agent.in_transit	=>		
+		! in_transit(agent)					=>		
 			explore_stay!(agent, sim.model.world, sim.par)
 	
 	@poisson(rate_contacts(agent, sim.par))	~
-		! agent.in_transit && ! maxed(agent, sim.par)	=> 
+		! in_transit(agent) && ! maxed(agent, sim.par)	=> 
 			meet_locally!(agent, sim.model.world, sim.par)
 	
 	@poisson(rate_talk(agent, sim.par)) 	~
-		! agent.in_transit	=> 		
+		true								=> 		
 			talk_once!(agent, sim.model.world, sim.par)
 
 	@poisson(move_rate(agent, sim.par))		~
-		! agent.in_transit && ! isempty(agent.plan)	=> 		
+		! in_transit(agent) && ! isempty(agent.plan)	=> 		
 			begin
 				#agent.loc.move_count += 1
 				start_move!(agent, sim.model.world, sim.par)
 			end
 	
 	@poisson(rate_transit(agent, sim.par))	~
-		agent.in_transit	=> 		
+		in_transit(agent)					=> 		
 			begin
 				resch = finish_move!(agent, sim.model.world, sim.par)
 				# would be nicer to check for isempty(resch) here,

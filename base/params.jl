@@ -82,6 +82,8 @@ const VF = Vector{Float64}
 	save_thresh		:: Float64	= 100.0
 	"min income required to start saving"
 	save_income		:: Float64	= 1.0
+	"movement speed"
+	move_speed		:: Float64	= 0.5
 
 	"elasticity of traffic counter"
 	ret_traffic		:: Float64	= 0.8

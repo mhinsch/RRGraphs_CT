@@ -39,10 +39,10 @@ add_link!(loc, link) = push!(loc.links, link)
 
 
 # migrants
-mutable struct AgentT{L}
+mutable struct AgentT{LOC, LINK}
 	# current real position
-	loc :: L
-	in_transit :: Bool
+	loc :: LOC
+	link :: LINK
 	# what it thinks it knows about the world
 	n_locs :: Int
 	info_loc :: Vector{InfoLocation}
@@ -54,13 +54,10 @@ mutable struct AgentT{L}
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
-	contacts :: Vector{AgentT{L}}
+	contacts :: Vector{AgentT{LOC, LINK}}
 	steps :: Int
 	planned :: Int
 end
-
-AgentT{L}(l::L, c :: Float64) where {L} = AgentT{L}(l, false, 0, [], [], 0, [], [], 1.0, c, [], 0, 0)
-
 
 target(agent) = length(agent.info_target) > 0 ? agent.info_target[1] : Unknown
 
@@ -127,14 +124,23 @@ end
 
 Link(id, t, l1, l2) = Link(id, t, l1, l2, 0, 0, 0)
 
-
-LocationT{L}(p :: Pos, t, i) where {L} = LocationT{L}(i, t, 0.0, 0.0, [], L[], p, 0, 0, 0.0)
-# construct empty location
-#LocationT{L}() where {L} = LocationT{L}(Nowhere, STD, 0)
-
 const Location = LocationT{Link}
+Location(p :: Pos, t, i) = Location(i, t, 0.0, 0.0, [], Link[], p, 0, 0, 0.0)
+const NoLoc = Location(Nowhere, STD, 0)
 
-const Agent = AgentT{Location}
+const NoLink = Link(0, FAST, NoLoc, NoLoc)
+
+const Agent = AgentT{Location, Link}
+
+Agent(loc::Location, c :: Float64) = Agent(loc, NoLink, 0, [], [], 0, [], [], 1.0, c, [], 0, 0)
+
+in_transit(a :: Agent) = a.link != NoLink
+set_transit!(a :: Agent, l :: Link) = a.link = l
+function end_transit!(a :: Agent, l :: Location)
+	a.link = NoLink
+	a.loc = l
+end
+
 
 # get the agent's info on a location
 info(agent, l::Location) = agent.info_loc[l.id]

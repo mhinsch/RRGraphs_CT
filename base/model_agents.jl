@@ -384,7 +384,7 @@ end
 
 
 # same as ML3
-rate_transit(agent, par) = 1.0
+rate_transit(agent, par) = par.move_speed / agent.link.friction
 
 rate_contacts(agent, par) = (length(agent.loc.people)-1) * par.p_keep_contact
 
@@ -497,10 +497,11 @@ end
 
 function start_move!(agent, world, par)
 	@assert ! arrived(agent)
-	agent.in_transit = true
 
 	next = info2real(agent.plan[end], world)
 	link = find_link(agent.loc, next)
+
+	set_transit!(agent, link)
 	
 	# update traffic counter
 	link.count += 1
@@ -514,13 +515,11 @@ end
 
 
 function finish_move!(agent, world, par)
-	agent.in_transit = false
-
 	next = info2real(agent.plan[end], world)
 	pop!(agent.plan)
 
 	add_agent!(next, agent)
-	agent.loc = next
+	end_transit!(agent, next)
 
 	if arrived(agent)
 		return []
