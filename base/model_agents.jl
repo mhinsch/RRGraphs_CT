@@ -259,13 +259,65 @@ function exchange_beliefs(val1::TrustedF, val2::TrustedF, par1, par2)
 end
 
 
-function exchange_info!(a1::Agent, a2::Agent, world::World, par)
-	# a1 can never have arrived yet
-	arr = arrived(a2)
+function exchange_loc_info(loc, info1, info2, a1, a2, p1, p2, par)
+	# neither agent knows anything
+	if !known(info1) && !known(info2)
+		return	
+	end
+	
+	if !known(info1)
+		info1 = discover!(a1, loc, par)
+	elseif !known(info2) && !arrived(a2)
+		info2 = discover!(a2, loc, par)
+	end
 
+	# both have knowledge at l, compare by trust and transfer accordingly
+	if known(info1) && known(info2)
+		res1, res2 = exchange_beliefs(info1.resources, info2.resources, p1, p2)
+		qual1, qual2 = exchange_beliefs(info1.quality, info2.quality, p1, p2)
+		info1.resources = res1
+		info1.quality = qual1
+		# only a2 can have arrived
+		if !arrived(a2) 
+			info2.resources = res2
+			info2.quality = qual2
+		end
+	end
+end
+
+
+function exchange_link_info(link, info1, info2, a1, a2, p1, p2, par)
+	# neither agent knows anything
+	if !known(info1) && !known(info2)
+		return
+	end
+
+	# only one agent knows the link
+	if !known(info1)
+		if knows(a1, link.l1) && knows(a1, link.l2)
+			info1 = discover!(a1, link, link.l1, par)
+		end
+	elseif !known(info2) && !arrived(a2)
+		if knows(a2, link.l1) && knows(a2, link.l2)
+			info2 = discover!(a2, link, link.l1, par)
+		end
+	end
+	
+	# both have knowledge at l, compare by trust and transfer accordingly
+	if known(info1) && known(info2)
+		frict1, frict2 = exchange_beliefs(info1.friction, info2.friction, p1, p2)
+		info1.friction = frict1
+		if !arrived(a2)
+			info2.friction = frict2
+		end
+	end
+end
+
+
+function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 	p2 = InfoPars(par.convince, par.convert, par.confuse, par.error)
 	# values a1 experiences, have to be adjusted if a2 has already arrived
-	p1 = if arr	
+	p1 = if arrived(a2)
 		InfoPars(par.convince^(1.0/par.weight_arr), par.convert^(1.0/par.weight_arr), par.confuse, 
 			par.error)
 		else
@@ -276,75 +328,18 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		if rand() > par.p_transfer_info
 			continue
 		end
-		
-		info1 :: InfoLocation = a1.info_loc[l]
-		info2 :: InfoLocation = a2.info_loc[l]
-
-		# neither agent knows anything
-		if !known(info1) && !known(info2)
-			continue
-		end
-		
-		loc = world.cities[l]
-
-		if !known(info1)
-			info1 = discover!(a1, loc, par)
-		elseif !known(info2) && !arr
-			info2 = discover!(a2, loc, par)
-		end
-
-		# both have knowledge at l, compare by trust and transfer accordingly
-		if known(info1) && known(info2)
-			res1, res2 = exchange_beliefs(info1.resources, info2.resources, p1, p2)
-			qual1, qual2 = exchange_beliefs(info1.quality, info2.quality, p1, p2)
-			info1.resources = res1
-			info1.quality = qual1
-			# only a2 can have arrived
-			if !arr 
-				info2.resources = res2
-				info2.quality = qual2
-			end
-		end
+		exchange_loc_info(world.cities[l], a1.info_loc[l], a2.info_loc[l], a1, a2, p1, p2, par)
 	end
 
 	for l in eachindex(a1.info_link)
 		if rand() > par.p_transfer_info
 			continue
 		end
-		
-		info1 :: InfoLink = a1.info_link[l]
-		info2 :: InfoLink = a2.info_link[l]
-
-		# neither agent knows anything
-		if !known(info1) && !known(info2)
-			continue
-		end
-
-		link = world.links[l]
-		
-		# only one agent knows the link
-		if !known(info1)
-			if knows(a1, link.l1) && knows(a1, link.l2)
-				info1 = discover!(a1, link, link.l1, par)
-			end
-		elseif !known(info2) && !arr
-			if knows(a2, link.l1) && knows(a2, link.l2)
-				info2 = discover!(a2, link, link.l1, par)
-			end
-		end
-		
-		# both have knowledge at l, compare by trust and transfer accordingly
-		if known(info1) && known(info2)
-			frict1, frict2 = exchange_beliefs(info1.friction, info2.friction, p1, p2)
-			info1.friction = frict1
-			if !arr
-				info2.friction = frict2
-			end
-		end
+		exchange_link_info(world.links[l], a1.info_link[l], a2.info_link[l], a1, a2, p1, p2, par)
 	end
 
 	a1.out_of_date += 1
-	if ! arr
+	if ! arrived(a2)
 		a2.out_of_date += 1
 	end
 end
@@ -390,7 +385,7 @@ rate_contacts(agent, par) = (length(agent.loc.people)-1) * par.p_keep_contact
 
 rate_talk(agent, par) = length(agent.contacts) * par.p_info_contacts
 
-rate_plan(agent, par) = agent.out_of_date * sim.par.rate_plan
+rate_plan(agent, par) = agent.out_of_date * par.rate_plan
 
 
 income(loc, par) = par.ben_resources * loc.resources - par.costs_stay
