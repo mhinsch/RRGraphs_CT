@@ -47,6 +47,10 @@ const VF = Vector{Float64}
 	ini_capital 	:: Float64 	= 2000.0
 	"prob. to know a target when entering"
 	p_know_target	:: Float64	= 0.0
+	"prob. to know a city (per city)"
+	p_know_city		:: Float64	= 0.0
+	"prob. to know a link (per link)"
+	p_know_link		:: Float64	= 0.0
 
 	"rate at which agents plan their movement"
 	rate_plan		:: Float64	= 1.0
@@ -65,12 +69,14 @@ const VF = Vector{Float64}
 	p_find_dests	:: Float64	= 0.3
 	"trust in information collected while travelling"
 	trust_travelled	:: Float64	= 0.8
-	"speed of exploration while staying"
+	"efficiency of exploration while staying"
 	speed_expl_stay :: Float64	= 1.0
-	"speed of exploration while moving"
+	"efficiency  of exploration while moving"
 	speed_expl_move :: Float64	= 1.0
-	rate_explore_loc :: Float64	= 1.0
+	"rate of exploration while staying"
+	rate_explore_stay :: Float64	= 1.0
 
+	"rate of costs applying while staying"
 	rate_costs_stay	:: Float64	= 1.0
 	"resource costs of staying"
 	costs_stay		:: Float64	= 1.0

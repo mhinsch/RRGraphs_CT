@@ -65,17 +65,9 @@ end
 
 # explore while moving one step
 function explore_move!(agent, world, dest, par)
-	info_loc2 :: InfoLocation, l = explore_at!(agent, world, dest, par.speed_expl_move, false, par)
-	info_loc1 :: InfoLocation = info_current(agent)
-
 	link = find_link(agent.loc, dest)
-	inf = info(agent, link)
-	if !known(inf)
-		# TODO stochastic error
-		inf = discover!(agent, link, agent.loc, par)
-	end
 
-	inf.friction = TrustedF(link.friction, par.trust_travelled)
+	explore_at!(agent, world, agent.loc, link, par.speed_expl_move, par)
 
 	agent
 end
@@ -199,6 +191,20 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 end
 
 
+function explore_at!(agent, world, from :: Location, link :: Link, speed, par)
+	# knowledge
+	inf = info(agent, link)
+
+	if !known(inf)
+		inf = discover!(agent, from, link, par)
+	end
+
+	# gain information on local properties
+	inf.friction = update(inf.friction, link.friction, speed)
+
+	inf, link
+end
+
 # ********************
 # information exchange
 # ********************
@@ -318,8 +324,8 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 	p2 = InfoPars(par.convince, par.convert, par.confuse, par.error)
 	# values a1 experiences, have to be adjusted if a2 has already arrived
 	p1 = if arrived(a2)
-		InfoPars(par.convince^(1.0/par.weight_arr), par.convert^(1.0/par.weight_arr), par.confuse, 
-			par.error)
+			InfoPars(par.convince^(1.0/par.weight_arr), par.convert^(1.0/par.weight_arr), par.confuse,
+				par.error)
 		else
 			p2
 		end
@@ -504,6 +510,10 @@ function start_move!(agent, world, par)
 
 	costs_move!(agent, link, par)
 	remove_agent!(world, agent)
+
+	# link exploration is a consequence of direct experience, so
+	# it always happens
+	explore_at!(agent, world, agent.loc, link, par.speed_expl_move, par)
 
 	[agent; agent.loc.people]
 end
