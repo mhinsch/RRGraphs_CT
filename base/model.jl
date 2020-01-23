@@ -42,12 +42,24 @@ function add_migrant!(model::Model, par)
 	end
 
 	# some exits are known
-	# the only bit of initial global info so far
-	for l in model.world.exits
+	for c in model.world.exits
 		if rand() < par.p_know_target
-			explore_at!(agent, model.world, l, 0.5, false, par)
+			explore_at!(agent, model.world, c, par.ini_explore, false, par)
 		end
 	end
+
+	for c in model.world.cities
+		if rand() < par.p_know_city
+			explore_at!(agent, model.world, c, par.ini_explore, false, par)
+		end
+	end
+
+	for l in model.world.links
+		if (knows(agent, l.l1) || knows(agent, l.l2)) && rand() < par.p_know_link
+			explore_at!(agent, model.world, (knows(agent, l.l1) ? l.l1 : l.l2), par.ini_explore, par)
+		end
+	end
+
 
 	add_agent!(entry, agent)
 	push!(model.people, agent)
