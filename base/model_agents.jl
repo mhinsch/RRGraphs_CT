@@ -63,16 +63,6 @@ end
 # ***********
 
 
-# explore while moving one step
-function explore_move!(agent, world, dest, par)
-	link = find_link(agent.loc, dest)
-
-	explore_at!(agent, world, agent.loc, link, par.speed_expl_move, par)
-
-	agent
-end
-
-
 # connect loc and link (if not already connected)
 function connect!(loc :: InfoLocation, link :: InfoLink)
 	# add location to link
