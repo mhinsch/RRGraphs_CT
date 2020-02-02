@@ -51,6 +51,8 @@ const VF = Vector{Float64}
 	p_know_city		:: Float64	= 0.0
 	"prob. to know a link (per link)"
 	p_know_link		:: Float64	= 0.0
+	"efficiency of exploration for initial knowledge"
+	speed_expl_ini	:: Float64	= 1.0
 
 	"rate at which agents plan their movement"
 	rate_plan		:: Float64	= 1.0

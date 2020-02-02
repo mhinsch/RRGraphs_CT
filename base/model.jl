@@ -44,19 +44,19 @@ function add_migrant!(model::Model, par)
 	# some exits are known
 	for c in model.world.exits
 		if rand() < par.p_know_target
-			explore_at!(agent, model.world, c, par.ini_explore, false, par)
+			explore_at!(agent, model.world, c, par.speed_expl_ini, false, par)
 		end
 	end
 
 	for c in model.world.cities
 		if rand() < par.p_know_city
-			explore_at!(agent, model.world, c, par.ini_explore, false, par)
+			explore_at!(agent, model.world, c, par.speed_expl_ini, false, par)
 		end
 	end
 
 	for l in model.world.links
 		if (knows(agent, l.l1) || knows(agent, l.l2)) && rand() < par.p_know_link
-			explore_at!(agent, model.world, (knows(agent, l.l1) ? l.l1 : l.l2), par.ini_explore, par)
+			explore_at!(agent, model.world, (knows(agent, l.l1) ? l.l1 : l.l2), par.speed_expl_ini, par)
 		end
 	end
 
