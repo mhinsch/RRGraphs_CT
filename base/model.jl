@@ -56,7 +56,8 @@ function add_migrant!(model::Model, par)
 
 	for l in model.world.links
 		if (knows(agent, l.l1) || knows(agent, l.l2)) && rand() < par.p_know_link
-			explore_at!(agent, model.world, (knows(agent, l.l1) ? l.l1 : l.l2), par.speed_expl_ini, par)
+			explore_at!(agent, model.world, l, (knows(agent, l.l1) ? l.l1 : l.l2), 
+				par.speed_expl_ini, par)
 		end
 	end
 

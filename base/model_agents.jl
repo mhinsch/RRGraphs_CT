@@ -181,12 +181,12 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 end
 
 
-function explore_at!(agent, world, from :: Location, link :: Link, speed, par)
+function explore_at!(agent, world, link :: Link, from :: Location, speed, par)
 	# knowledge
 	inf = info(agent, link)
 
 	if !known(inf)
-		inf = discover!(agent, from, link, par)
+		inf = discover!(agent, link, from, par)
 	end
 
 	# gain information on local properties
@@ -503,7 +503,7 @@ function start_move!(agent, world, par)
 
 	# link exploration is a consequence of direct experience, so
 	# it always happens
-	explore_at!(agent, world, agent.loc, link, par.speed_expl_move, par)
+	explore_at!(agent, world, link, agent.loc, par.speed_expl_move, par)
 
 	[agent; agent.loc.people]
 end
