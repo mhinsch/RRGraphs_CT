@@ -334,9 +334,9 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		exchange_link_info(world.links[l], a1.info_link[l], a2.info_link[l], a1, a2, p1, p2, par)
 	end
 
-	a1.out_of_date += 1
+	a1.out_of_date = 1.0
 	if ! arrived(a2)
-		a2.out_of_date += 1
+		a2.out_of_date = 1.0
 	end
 end
 
@@ -395,7 +395,7 @@ end
 function plan_costs!(agent, par)
 	make_plan!(agent, par)
 
-	agent.out_of_date = 1.0
+	agent.out_of_date = 0.0
 
 	if agent.plan != []
 		agent.planned += 1
@@ -444,7 +444,7 @@ end
 function explore_stay!(agent, world, par)
 	explore_at!(agent, world, agent.loc, par.speed_expl_stay, true, par)
 
-	agent.out_of_date += 0.5
+	agent.out_of_date = 1.0
 
 	[agent]
 end

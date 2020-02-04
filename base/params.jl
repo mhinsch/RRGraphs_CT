@@ -54,8 +54,8 @@ const VF = Vector{Float64}
 	"efficiency of exploration for initial knowledge"
 	speed_expl_ini	:: Float64	= 1.0
 
-	"rate at which agents plan their movement"
-	rate_plan		:: Float64	= 1.0
+	"rate at which agents plan their movement after receiving info"
+	rate_plan		:: Float64	= 100.0
 
 	"expected resources at newly found city"
 	res_exp			:: Float64	= 0.5

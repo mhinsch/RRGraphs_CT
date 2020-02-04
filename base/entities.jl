@@ -59,7 +59,8 @@ mutable struct AgentT{LOC, LINK}
 	planned :: Int
 end
 
-target(agent) = length(agent.info_target) > 0 ? agent.info_target[1] : Unknown
+knows_target(agent) = length(agent.info_target) > 0 
+target(agent) = knows_target(agent) ? agent.info_target[1] : Unknown
 
 arrived(agent) = agent.loc.typ == EXIT
 
