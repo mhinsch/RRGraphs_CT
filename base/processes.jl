@@ -27,6 +27,10 @@ end
 		! in_transit(agent) && ! maxed(agent, sim.par)	=> 
 			meet_locally!(agent, sim.model.world, sim.par)
 	
+	@poisson(rate_drop_contacts(agent, sim.par)) 	~
+		true								=> 		
+			drop_contact!(agent, sim.par)
+
 	@poisson(rate_talk(agent, sim.par)) 	~
 		true								=> 		
 			talk_once!(agent, sim.model.world, sim.par)

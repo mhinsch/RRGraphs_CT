@@ -341,21 +341,6 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 end
 
 
-
-# ********
-# contacts
-# ********
-
-
-# TODO NOT USED
-#function  step_agent_contacts!(agent, par)
-#	for i in length(agent.contacts):-1:1
-#		if rand() < par.p_drop_contact
-#			drop_at!(agent.contacts, i)
-#		end
-#	end
-#end
-
 maxed(agent, par) = length(agent.contacts) >= par.n_contacts_max
 
 # *********************
@@ -378,6 +363,8 @@ end
 rate_transit(agent, par) = par.move_speed / agent.link.friction
 
 rate_contacts(agent, par) = (length(agent.loc.people)-1) * par.p_keep_contact
+
+rate_drop_contacts(agent, par) = length(agent.contacts) * par.p_drop_contact
 
 rate_talk(agent, par) = length(agent.contacts) * par.p_info_contacts
 
@@ -449,6 +436,7 @@ function explore_stay!(agent, world, par)
 	[agent]
 end
 
+
 function meet_locally!(agent, world, par)
 	@assert ! arrived(agent)
 	pop = agent.loc.people
@@ -466,6 +454,13 @@ function meet_locally!(agent, world, par)
 	exchange_info!(agent, a, world, par)
 
 	[agent, a]
+end
+
+
+function drop_contact!(agent, par)
+	drop_at!(agent.contacts, rand(1:length(agent.contacts)))
+
+	[agent]
 end
 
 
