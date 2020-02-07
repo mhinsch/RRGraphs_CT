@@ -385,7 +385,6 @@ function plan_costs!(agent, par)
 	agent.out_of_date = 0.0
 
 	if agent.plan != []
-		agent.planned += 1
 		return [agent]
 	end
 
@@ -486,6 +485,10 @@ function start_move!(agent, world, par)
 
 	next = info2real(agent.plan[end], world)
 	link = find_link(agent.loc, next)
+
+	if length(agent.plan) > 1
+		agent.planned += 1
+	end
 
 	set_transit!(agent, link)
 	
