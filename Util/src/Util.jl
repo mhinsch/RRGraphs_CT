@@ -2,7 +2,7 @@ module Util
 
 
 export drop!, drop_at!, @set_to_max!, @update!, bresenham, limit, valley, sigmoid,
-	unf_delta, distance, parse, Pathfinding, StatsAccumulator
+	unf_delta, distance, parse, Pathfinding, StatsAccumulator, Observation
 
 
 function Base.parse(t :: Type{T}, str) where {T<:Array}
@@ -140,5 +140,6 @@ end
 
 include("Pathfinding.jl")
 include("StatsAccumulator.jl")
+include("Observation.jl")
 
 end

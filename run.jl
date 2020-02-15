@@ -4,8 +4,7 @@ using Random
 
 push!(LOAD_PATH, pwd())
 
-using Analysis
-
+include("analysis.jl")
 include("base/simulation.jl")
 include("base/args.jl")
 
@@ -75,15 +74,12 @@ const t_stop = args[:stop_time]
 const logf = open(args[:log_file], "w")
 const cityf = open(args[:city_file], "w")
 const linkf = open(args[:link_file], "w")
-#const outf = open(args[:out_file], "w")
 
-prepare_log(logf)
-#prepare_out(outf)
+prepare_outfiles(logf, cityf, linkf)
 const sim = run(p, t_stop, logf)
 
 analyse_world(sim.model, cityf, linkf)
 
-#close(outf)
 close(logf)
 close(cityf)
 close(linkf)
