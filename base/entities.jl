@@ -50,12 +50,12 @@ mutable struct AgentT{LOC, LINK}
 	n_links :: Int
 	info_link :: Vector{InfoLink}
 	plan :: Vector{InfoLocation}
+	path :: Vector{LOC}
 	out_of_date :: Float64
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
 	contacts :: Vector{AgentT{LOC, LINK}}
-	steps :: Int
 	planned :: Int
 end
 
@@ -133,13 +133,14 @@ const NoLink = Link(0, FAST, NoLoc, NoLoc)
 
 const Agent = AgentT{Location, Link}
 
-Agent(loc::Location, c :: Float64) = Agent(loc, NoLink, 0, [], [], 0, [], [], 1.0, c, [], 0, 0)
+Agent(loc::Location, c :: Float64) = Agent(loc, NoLink, 0, [], [], 0, [], [], [loc], 1.0, c, [], 0)
 
 in_transit(a :: Agent) = a.link != NoLink
 set_transit!(a :: Agent, l :: Link) = a.link = l
 function end_transit!(a :: Agent, l :: Location)
 	a.link = NoLink
 	a.loc = l
+	push!(a.path, a.loc)
 end
 
 

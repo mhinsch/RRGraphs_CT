@@ -310,6 +310,8 @@ function exchange_link_info(link, info1, info2, a1, a2, p1, p2, par)
 end
 
 
+
+
 function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 	p2 = InfoPars(par.convince, par.convert, par.confuse, par.error)
 	# values a1 experiences, have to be adjusted if a2 has already arrived
@@ -494,7 +496,6 @@ function start_move!(agent, world, par)
 	
 	# update traffic counter
 	link.count += 1
-	agent.steps += 1
 
 	costs_move!(agent, link, par)
 	remove_agent!(world, agent)
