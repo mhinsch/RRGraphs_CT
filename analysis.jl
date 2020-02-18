@@ -1,7 +1,6 @@
 using Util.Observation
 using Util.StatsAccumulator
 
-
 const MV = MVAcc{Float64}
 const MM = MaxMinAcc{Float64}
 
@@ -11,23 +10,24 @@ prefixes(::Type{<:MV}) = ["mean", "var"]
 prefixes(::Type{<:MM}) = ["max", "min"]
 
 
-import Base.print
-print(out::IO, acc :: MM, sep) = print(out, acc.max, sep, acc.min)
-function print(out::IO, acc :: MV, sep)
+Base.show(out::IO, acc :: MM) = print(out, acc.max, "\t", acc.min)
+function Base.show(out::IO, acc :: MV)
 	res = result(acc)
-	print(out, res[1], sep, res[2])
+	print(out, res[1], "\t", res[2])
 end
 
+const I = Iterators
 
 @observe log model begin
-	@for a in model.migrants begin
+	# analyse 1000 latest agents to have a arrived
+	@for a in I.take(I.filter(ag->arrived(ag), I.reverse(model.people)), 1000) begin
 		@stat("cap", 		MV, MM) <| a.capital
 		@stat("n_loc", 		MV, MM) <| Float64(a.n_locs)
 		@stat("n_link", 	MV, MM) <| Float64(a.n_links)
 		@stat("n_plan", 	MV, MM) <| Float64(length(a.plan))
 		@stat("n_contacts", MV, MM) <| Float64(length(a.contacts))
-		@stat("n_steps", 	MV, MM) <| Float64(a.steps)
-		@stat("freq_plan", 	MV, MM) <| Float64(a.planned / (a.steps + 0.00001))
+		@stat("n_steps", 	MV, MM) <| Float64(length(a.path))
+		@stat("freq_plan", 	MV, MM) <| Float64(a.planned / (length(a.plan) + 0.00001))
 	end
 
 	@for ex in model.world.exits begin
