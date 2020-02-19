@@ -24,15 +24,23 @@ const I = Iterators
 		@stat("cap", 		MV, MM) <| a.capital
 		@stat("n_loc", 		MV, MM) <| Float64(a.n_locs)
 		@stat("n_link", 	MV, MM) <| Float64(a.n_links)
-		@stat("n_plan", 	MV, MM) <| Float64(length(a.plan))
 		@stat("n_contacts", MV, MM) <| Float64(length(a.contacts))
 		@stat("n_steps", 	MV, MM) <| Float64(length(a.path))
-		@stat("freq_plan", 	MV, MM) <| Float64(a.planned / (length(a.plan) + 0.00001))
+		@stat("freq_plan", 	MV, MM) <| Float64(a.planned / (length(a.path) + 0.00001))
+	end
+
+	# only migrants can have a plan
+	@for a in model.migrants begin
+		@stat("n_plan", 	MV, MM) <| Float64(length(a.plan))
 	end
 
 	@for ex in model.world.exits begin
 		@stat("count", 		MV, MM) <| Float64(ex.count)
 		@stat("traffic", 	MV, MM) <| Float64(ex.traffic)
+	end
+
+	@for c in model.world.cities begin
+		@stat("N",			MV, MM) <| Float64(length(c.people))
 	end
 
 	@show "n_migrants"	length(model.migrants)
