@@ -362,7 +362,7 @@ end
 
 
 # same as ML3
-rate_transit(agent, par) = par.move_speed / agent.link.friction
+rate_transit(agent, par) = par.move_rate + par.move_speed / agent.link.friction
 
 rate_contacts(agent, par) = (length(agent.loc.people)-1) * par.p_keep_contact
 

@@ -92,6 +92,8 @@ const VF = Vector{Float64}
 	save_income		:: Float64	= 1.0
 	"movement speed"
 	move_speed		:: Float64	= 0.5
+	"base movement rate"
+	move_rate		:: Float64	= 0.0
 
 	"elasticity of traffic counter"
 	ret_traffic		:: Float64	= 0.8
