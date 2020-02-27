@@ -4,6 +4,7 @@ using Util.StatsAccumulator
 const MV = MVAcc{Float64}
 const MM = MaxMinAcc{Float64}
 
+include("analysis_util.jl")
 
 import Util.Observation.prefixes
 prefixes(::Type{<:MV}) = ["mean", "var"]
@@ -27,6 +28,8 @@ const I = Iterators
 		@stat("n_contacts", MV, MM) <| Float64(length(a.contacts))
 		@stat("n_steps", 	MV, MM) <| Float64(length(a.path))
 		@stat("freq_plan", 	MV, MM) <| Float64(a.planned / (length(a.path) + 0.00001))
+		@stat("acc_c", 		MV, MM) <| acc_cities_per_agent(a, model.world)
+		@stat("acc_l", 		MV, MM) <| acc_links_per_agent(a, model.world)
 	end
 
 	# only migrants can have a plan
@@ -47,6 +50,14 @@ const I = Iterators
 	@show "n_arrived" 	(length(model.people) - length(model.migrants))
 end
 
+# unused
+#@observe final_model model begin	
+#	# analyse 1000 latest agents to have a arrived
+#	@for a in I.take(I.filter(ag->arrived(ag), I.reverse(model.people)), 1000) begin
+#		@stat("acc_c", 		MV, MM) <| acc_cities_per_agent(a, model.world)
+#		@stat("acc_l", 		MV, MM) <| acc_links_per_agent(a, model.world)
+#	end
+#end
 
 @observe final_city c begin
 	@show "id" 		c.id
@@ -72,6 +83,7 @@ end
 
 function prepare_outfiles(logf, cityf, linkf)
 	print_header_log(logf)
+#	print_header_final_model(modelf)
 	print_header_final_city(cityf)
 	print_header_final_link(linkf)
 end
@@ -81,6 +93,8 @@ function analyse_log(model, logf)
 end
 
 function analyse_world(model, cityf, linkf)
+#	print_stats_final_model(modelf, model)
+
 	for c in model.world.cities
 		print_stats_final_city(cityf, c)
 	end

@@ -204,3 +204,9 @@ end
 info2real(l::InfoLocation, world) = world.cities[l.id]
 info2real(l::InfoLink, world) = world.links[l.id]
 
+dist_eucl(x1, y1, x2, y2) = sqrt((x2-x1)^2 + (y2-y1)^2)
+
+accuracy(li::InfoLocation, lr::Location) = 
+	dist_eucl(li.quality.value, li.resources.value, lr.quality, lr.resources)
+
+accuracy(li::InfoLink, lr::Link) = abs(li.friction.value - lr.friction)

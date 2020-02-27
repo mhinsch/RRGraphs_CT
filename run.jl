@@ -43,16 +43,16 @@ const arg_settings = ArgParseSettings("run simulation", autofix_names=true)
 		arg_type = Float64
 		default = 50.0
 	"--par-file", "-p"
-		help = "file name for parameters"
+		help = "file name for parameter output"
 		default = "params.txt"
-	"--out-file", "-o"
-		help = "file name for data output"
-		default = "output.txt"
+#	"--model-file"
+#		help = "file name for model data output"
+#		default = "data.txt"
 	"--city-file"
-		help = "file name for city output"
+		help = "file name for city data output"
 		default = "cities.txt"
 	"--link-file"
-		help = "file name for link output"
+		help = "file name for link data output"
 		default = "links.txt"
 	"--log-file", "-l"
 		help = "file name for log"
@@ -72,6 +72,7 @@ save_params(args[:par_file], p)
 const t_stop = args[:stop_time] 
 
 const logf = open(args[:log_file], "w")
+#const modelf = open(args[:model_file], "w")
 const cityf = open(args[:city_file], "w")
 const linkf = open(args[:link_file], "w")
 
@@ -81,5 +82,6 @@ const sim = run(p, t_stop, logf)
 analyse_world(sim.model, cityf, linkf)
 
 close(logf)
+#close(modelf)
 close(cityf)
 close(linkf)
