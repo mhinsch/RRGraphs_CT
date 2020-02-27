@@ -68,6 +68,7 @@ end
 	@show "N"		length(c.people)
 	@show "n_links"	length(c.links)
 	@show "count"	c.count
+	@show "acc"		acc_cities_per_city(c, args[:agents])
 end
 
 
@@ -78,6 +79,7 @@ end
 	@show "l2"			l.l2.id
 	@show "friction"	l.friction
 	@show "count"		l.count
+	@show "acc"			acc_links_per_link(l, args[:agents])
 end
 
 
@@ -89,18 +91,21 @@ function prepare_outfiles(logf, cityf, linkf)
 end
 
 function analyse_log(model, logf)
-	print_stats_log(logf, model)
+	@time print_stats_log(logf, model)
 end
 
 function analyse_world(model, cityf, linkf)
 #	print_stats_final_model(modelf, model)
 
+	# lazy iterator
+	test_agents = I.take(I.filter(ag->arrived(ag), I.reverse(model.people)), 1000)
+
 	for c in model.world.cities
-		print_stats_final_city(cityf, c)
+		print_stats_final_city(cityf, c, agents=test_agents) 
 	end
 
 	for l in model.world.links
-		print_stats_final_link(linkf, l)
+		print_stats_final_link(linkf, l, agents=test_agents)
 	end
 end
 

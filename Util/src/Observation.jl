@@ -83,12 +83,12 @@ macro observe(fname, model, decl)
 
 	header_func_name = Symbol("print_header_" * String(fname))
 	# use : in order to avoid additional block
-	header_func = :(function $(esc(header_func_name))(output, FS="\t", LS="\n")
+	header_func = :(function $(esc(header_func_name))(output; FS="\t", LS="\n")
 		end)
 	header_body = header_func.args[2].args
 
 	log_func_name = Symbol("print_stats_" * String(fname))
-	log_func = :(function $(esc(log_func_name))(output, $(esc(model)), FS="\t", LS="\n")
+	log_func = :(function $(esc(log_func_name))(output, $(esc(model)); FS="\t", LS="\n", $(esc(:args))...)
 		end)
 	log_body = log_func.args[2].args
 
