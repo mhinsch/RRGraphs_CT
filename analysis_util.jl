@@ -15,7 +15,7 @@ function acc_cities_per_agent(agent, world)
 		acc_c /= n_c
 	end
 
-	1.0 - acc_c
+	acc_c
 end
 
 function acc_links_per_agent(agent, world)
@@ -33,7 +33,7 @@ function acc_links_per_agent(agent, world)
 		acc_l /= n_l
 	end
 
-	1.0 - acc_l
+	acc_l
 end
 
 
@@ -48,7 +48,7 @@ function acc_cities_per_city(city, agents)
 		end
 	end
 
-	n>0 ? 1.0-acc/n : 0.0
+	n>0 ? acc/n : 0.0
 end
 
 function acc_links_per_link(link, agents)
@@ -62,5 +62,5 @@ function acc_links_per_link(link, agents)
 		end
 	end
 
-	n>0 ? 1.0-acc/n : 0.0
+	n>0 ? acc/n : 0.0
 end
