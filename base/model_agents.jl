@@ -7,13 +7,6 @@ include("world_path_util.jl")
 # *********
 
 
-#"Quality of a link `link` to location `loc`. Calls `quality(::Infolocation,...)`."
-#function quality(link :: InfoLink, loc :: InfoLocation, par)
-#	# [0:3]					     [0:1.5], [0:15]	
-#	quality(loc, par) / (1.0 + friction(link)*par.qual_weight_frict)
-#end
-
-
 "Quality of location `loc` for global planning (no effect of x)."
 function quality(loc :: InfoLocation, par)
 	# [0:1]
@@ -220,7 +213,8 @@ function receive_belief(self::TrustedF, other::TrustedF, par)
 	# perceived values after error
 	t_pcv = limit(0.000001, other.trust + unf_delta(par.error), 0.99999)
 	d_pcv = 1.0 - t_pcv
-	v_pcv = max(0.0, other.value + unf_delta(par.error))
+	# use * as value might have range outside of [0, 1]
+	v_pcv = max(0.0, other.value * (1.0 + unf_delta(par.error)))
 	
 	dist_pcv = abs(v-v_pcv) / (v + v_pcv + 0.00001)
 
@@ -310,8 +304,6 @@ function exchange_link_info(link, info1, info2, a1, a2, p1, p2, par)
 end
 
 
-
-
 function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 	p2 = InfoPars(par.convince, par.convert, par.confuse, par.error)
 	# values a1 experiences, have to be adjusted if a2 has already arrived
@@ -328,6 +320,9 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		end
 		exchange_loc_info(world.cities[l], a1.info_loc[l], a2.info_loc[l], a1, a2, p1, p2, par)
 	end
+
+#	p1 = InfoPars(p1.convince, p1.confuse, p1.convert, par.error_frict)
+#	p2 = InfoPars(p2.convince, p2.confuse, p2.convert, par.error_frict)
 
 	for l in eachindex(a1.info_link)
 		if rand() > par.p_transfer_info
