@@ -51,20 +51,33 @@ function add_cities!(world, par)
 	end
 end
 
+sq_dist(l1, l2) = (l1.x-l2.x)^2 + (l1.y-l2.y)^2
 
 function add_entries!(world, par)
 	print("entries: ")
+
+	cities = copy(world.cities)
+
 	for i in 1:par.n_entries
 		y = rand()
 		x = 0
 		push!(world.entries, Location(Pos(x, y), ENTRY, length(world.cities)+1))
-		setup_entry!(world.entries[end], par)
-		# exits are linked to every city (but badly)
+		n_entry = world.entries[end]
+		setup_entry!(n_entry, par)
+		# entries are linked to every city that's close enough (but badly)
 		for c in world.cities
 			if c.typ != ENTRY && c.pos.x < par.entry_dist
-				add_link!(world, c, world.entries[end], SLOW, par)
+				add_link!(world, c, n_entry, SLOW, par)
 			end
 		end
+
+		# sort by distance to entry
+		sort!(cities, lt=(l1,l2)->sq_dist(n_entry.pos, l1.pos) < sq_dist(n_entry.pos, l2.pos))
+		# connect the n nearest
+		for j in 1:par.n_nearest_entry
+			add_link!(world, cities[j], n_entry, FAST, par)
+		end
+
 		push!(world.cities, world.entries[end])
 		print(length(world.cities), " ")
 	end
@@ -74,17 +87,28 @@ end
 		
 function add_exits!(world, par)
 	print("exits: ")
+
+	cities = copy(world.cities)
+
 	for i in 1:par.n_exits
 		y = rand()
 		x = 0.99 
 		push!(world.exits, Location(Pos(x, y), EXIT, length(world.cities)+1))
-		setup_exit!(world.exits[end], par)
-		# exits are linked to every city (but badly)
+		n_exit = world.exits[end]
+		setup_exit!(n_exit, par)
+		# exits are linked to every city that's close enough (but badly)
 		for c in world.cities
 			if c.typ != EXIT && c.pos.x > par.exit_dist
-				add_link!(world, c, world.exits[end], SLOW, par)
+				add_link!(world, c, n_exit, SLOW, par)
 			end
 		end
+		# sort by distance to exit
+		sort!(cities, lt=(l1,l2)->sq_dist(n_exit.pos, l1.pos) < sq_dist(n_exit.pos, l2.pos))
+		# connect the n nearest
+		for j in 1:par.n_nearest_exit
+			add_link!(world, cities[j], n_exit, FAST, par)
+		end
+
 		push!(world.cities, world.exits[end])
 		print(length(world.cities), " ")
 	end
