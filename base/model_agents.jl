@@ -344,7 +344,7 @@ maxed(agent, par) = length(agent.contacts) >= par.n_contacts_max
 # event functions/rates
 # *********************
 
-function move_rate(agent, par)
+function rate_move(agent, par)
 	loc = info_current(agent)
 
 	if agent.capital < par.save_thresh && income(agent.loc, par) > par.save_income
@@ -357,7 +357,7 @@ end
 
 
 # same as ML3
-rate_transit(agent, par) = par.move_rate + par.move_speed / agent.link.friction
+rate_transit(agent, par) = par.rate_move + par.move_speed / agent.link.friction
 
 rate_contacts(agent, par) = (length(agent.loc.people)-1) * par.p_keep_contact
 
@@ -418,6 +418,8 @@ function plan_costs!(agent, par)
 		# go to best neighbouring location 
 		agent.plan = [otherside(loc.links[best], loc)]
 	end
+
+	# plan == [] for staying
 
 	[agent]
 end

@@ -35,7 +35,7 @@ end
 		true								=> 		
 			talk_once!(agent, sim.model.world, sim.par)
 
-	@poisson(move_rate(agent, sim.par))		~
+	@poisson(rate_move(agent, sim.par))		~
 		! in_transit(agent) && ! isempty(agent.plan)	=> 		
 			begin
 				#agent.loc.move_count += 1
