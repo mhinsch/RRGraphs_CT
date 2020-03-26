@@ -117,8 +117,6 @@ const VF = Vector{Float64}
 	p_keep_contact 	:: Float64 	= 0.1
 	"prob. to lose contact"
 	p_drop_contact	:: Float64	= 0.1
-	"prob. to exchange info locally"
-	p_info_mingle	:: Float64	= 0.1
 	"prob. to exchange info with contacts"
 	p_info_contacts	:: Float64	= 0.1
 	"prob. to transfer info item"
