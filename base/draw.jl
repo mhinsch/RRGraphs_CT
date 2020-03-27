@@ -1,68 +1,28 @@
-uint(f) = floor(UInt32, f)
-
-struct Canvas
-	pixels :: Vector{UInt32}
-	ysize
-end
+import SSDL
 
 
-function put(canvas::Canvas, x, y, colour::UInt32)
-	canvas.pixels[(x-1)*canvas.ysize + y] = colour
-end
-
-function line(canvas::Canvas, x1, y1, x2, y2, col::UInt32)
-	bresenham(x1, y1, x2, y2) do x, y
-		put(canvas, x, y, col)
+function draw_agent!(canvas, agent, col, scatter)
+	xs = xsize(canvas)
+	ys = ysize(canvas)
+	if ! in_transit(agent)
+		x = scale(agent.loc.pos.x, xs) + rand(-scatter:scatter)
+		x = limit(1, x, xs)
+		y = scale(agent.loc.pos.y, ys) + rand(-scatter:scatter)
+		y = limit(1, y, ys)
+	else
+		next = agent.plan[end]
+		x = scale((agent.loc.pos.x + next.pos.x)/2, xs) + rand(-scatter:scatter)
+		x = limit(1, x, xs)
+		y = scale((agent.loc.pos.y + next.pos.y)/2, ys) + rand(-scatter:scatter)
+		y = limit(1, y, ys)
 	end
+
+	put(canvas, x, y, col)
 end
-
-xsize(canvas::Canvas) = length(canvas.pixels) ÷ canvas.ysize
-ysize(canvas::Canvas) = canvas.ysize
-Base.size(canvas::Canvas) = xsize(canvas), ysize(canvas)
-
-
-clear!(canvas::Canvas) = fill!(canvas.pixels, 0)
-
-
-Base.copyto!(c1::Canvas, c2::Canvas) = copyto!(c1.pixels, c2.pixels)
-
-
-alpha(x) = UInt32(x<<24)
-alpha(x::F) where {F<:AbstractFloat} = alpha(floor(UInt32, x))
-
-red(x) = UInt32(x<<16)
-red(x::F) where {F<:AbstractFloat} = red(floor(UInt32, x))
-
-green(x) = Int32(x<<8)
-green(x::F) where {F<:AbstractFloat}  = green(floor(UInt32, x))
-
-blue(x) = UInt32(x)
-blue(x::F) where {F<:AbstractFloat}  = blue(floor(UInt32, x))
-
-rgb(r, g, b) = red(r) | green(g) | blue(b)
-argb(a, r, g, b) = alpha(a) | red(r) | green(g) | blue(b)
-
-
-const WHITE = 0xFFFFFFFF
-
 
 function draw_people!(canvas, model)
-	xs, ys = size(canvas)
 	for p in model.migrants
-		if ! in_transit(p)
-			x = scale(p.loc.pos.x, xs) + rand(-5:5)
-			x = limit(1, x, xs)
-			y = scale(p.loc.pos.y, ys) + rand(-5:5)
-			y = limit(1, y, ys)
-		else
-			next = p.plan[end]
-			x = scale((p.loc.pos.x + next.pos.x)/2, xs) + rand(-5:5)
-			x = limit(1, x, xs)
-			y = scale((p.loc.pos.y + next.pos.y)/2, ys) + rand(-5:5)
-			y = limit(1, y, ys)
-		end
-
-		put(canvas, x, y, WHITE)
+		draw_agent!(canvas, p, WHITE, 5)
 	end
 end
 
@@ -179,7 +139,7 @@ function draw_rand_knowledge!(canvas, model, agent=nothing)
 		prev = c
 	end
 
-	put(canvas, scale(agent.loc.pos, canvas)..., WHITE)
+	draw_agent!(canvas, agent, WHITE, 1)
 
 	agent
 end

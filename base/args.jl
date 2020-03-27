@@ -6,7 +6,7 @@ function fields_as_args!(arg_settings, t :: Type)
 	fields = fieldnames(t)
 	for f in fields
 		fdoc =  REPL.stripmd(REPL.fielddoc(t, f))
-		add_arg_table(arg_settings, ["--" * String(f)], Dict(:help => fdoc))
+		add_arg_table!(arg_settings, ["--" * String(f)], Dict(:help => fdoc))
 	end
 end
 

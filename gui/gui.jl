@@ -1,7 +1,9 @@
 using SimpleDirectMediaLayer
 const SDL2 = SimpleDirectMediaLayer 
 
-import SimpleDirectMediaLayer.LoadBMP
+push!(LOAD_PATH, replace(pwd(), "/gui" => ""))
+#import SimpleDirectMediaLayer.LoadBMP
+using SSDL
 
 
 function setup_window(wx, wy)
@@ -46,21 +48,112 @@ function render(p :: Panel)
 end
 
 
-const panel_size = 1024
+struct Gui
+	tl :: Panel
+	tr :: Panel
+	bl :: Panel
+	br :: Panel
+	canvas :: Canvas
+	canvas_bg :: Canvas
+end
 
-const win_size = 2 * panel_size
+function setup_Gui(panel_size = 1024)
+	win_size = 2 * panel_size
 
-const renderer = setup_window(win_size, win_size)
+	renderer = setup_window(win_size, win_size)
 
-const top_left = Panel(renderer, panel_size, 0, 0)
-const top_right = Panel(renderer, panel_size, panel_size, 0)
-const bot_left = Panel(renderer, panel_size, 0, panel_size)
-const bot_right = Panel(renderer, panel_size, panel_size, panel_size)
+	top_left = Panel(renderer, panel_size, 0, 0)
+	top_right = Panel(renderer, panel_size, panel_size, 0)
+	bot_left = Panel(renderer, panel_size, 0, panel_size)
+	bot_right = Panel(renderer, panel_size, panel_size, panel_size)
 
-const pixels_bg = Vector{UInt32}(undef, panel_size*panel_size)
-const pixels = Vector{UInt32}(undef, panel_size*panel_size)
+	canvas = Canvas(panel_size, panel_size)
+	canvas_bg = Canvas(panel_size, panel_size)
 
-push!(LOAD_PATH, replace(pwd(), "/gui" => ""))
+	Gui(top_left, top_right, bot_left, bot_right, canvas, canvas_bg)
+end
+
+
+function render!(gui)
+	SDL2.RenderClear(gui.tl.renderer)
+	render(gui.tl)
+	render(gui.tr)
+	render(gui.bl)
+	render(gui.br)
+    SDL2.RenderPresent(gui.tl.renderer)
+end
+
+
+function draw(model, gui, focus_agent, clear=false)
+	copyto!(gui.canvas, gui.canvas_bg)
+	draw_people!(gui.canvas, model)
+	update!(gui.tl, gui.canvas.pixels)
+
+	if clear
+		clear!(gui.canvas)
+		draw_visitors!(gui.canvas, model)
+		update!(gui.tr, gui.canvas.pixels)
+		count = 0
+	end
+
+	clear!(gui.canvas)
+	agent = draw_rand_knowledge!(gui.canvas, model, focus_agent)
+	update!(gui.bl, gui.canvas.pixels)
+
+	clear!(gui.canvas)
+	draw_rand_social!(gui.canvas, model, 3, agent)
+	update!(gui.br, gui.canvas.pixels)
+end
+
+
+function run(sim, gui, t_stop)
+	t = 0.0
+	step = 1.0
+	start(sim)
+
+	focus_agent = nothing
+
+	count = 0
+	while true
+		t1 = time()
+		upto!(sim.scheduler, t + 1.0)
+		t += step
+		dt = time() - t1
+
+		if dt > 0.1
+			step /= 1.1
+		elseif dt < 0.03
+			step *= 1.1
+		end
+
+		if t_stop > 0 && t >= t_stop
+			break
+		end
+		
+		ev = SDL2.event()
+		
+		if typeof(ev) <: SDL2.KeyboardEvent #|| typeof(ev) <: SDL2.QuitEvent
+			break;
+		end
+
+		println(t, " #migrants: ", length(sim.model.migrants), 
+			" #arrived: ", length(sim.model.people) - length(sim.model.migrants))
+
+		if (focus_agent == nothing || arrived(focus_agent)) &&
+			length(sim.model.migrants) > 0
+			focus_agent = sim.model.people[end]
+		end
+
+		t1 = time()
+		draw(sim.model, gui, focus_agent, count==0)
+		count = count % 10 + 1
+		#println("dt: ", time() - t1)
+		render!(gui)
+		#println("dt2: ", time() - t1)
+	end
+end
+
+
 include("../base/simulation.jl")
 include("../base/draw.jl")
 include("../base/args.jl")
@@ -70,14 +163,14 @@ include("../" * get_parfile())
 
 const arg_settings = ArgParseSettings("run simulation", autofix_names=true)
 
-@add_arg_table arg_settings begin
+@add_arg_table! arg_settings begin
 	"--stop-time", "-t"
 		help = "at which time to stop the simulation" 
 		arg_type = Float64 
 		default = 0.0
 end
 
-add_arg_group(arg_settings, "simulation parameters")
+add_arg_group!(arg_settings, "simulation parameters")
 fields_as_args!(arg_settings, Params)
 
 const args = parse_args(arg_settings, as_symbols=true)
@@ -92,67 +185,13 @@ const world = create_world(parameters)
 
 Random.seed!(parameters.rand_seed_sim)
 const model = Model(world, Agent[], Agent[])
-
-
-const canvas = Canvas(pixels, panel_size)
-const canvas_bg = Canvas(pixels_bg, panel_size)
-
-clear!(canvas_bg)
-draw_bg!(canvas_bg, model)
-
 const sim = Simulation(model, parameters)
 
-t = 0.0
-start(sim)
+const gui = setup_Gui(1024)
 
-count = 0
-while true
-	global t, count
-	
-	upto!(sim.scheduler, t + 1.0)
-	
-	t += 1.0
+clear!(gui.canvas_bg)
+draw_bg!(gui.canvas_bg, sim.model)
 
-	if t_stop > 0 && t >= t_stop
-		break
-	end
-	
-	ev = SDL2.event()
-	
-	if typeof(ev) <: SDL2.KeyboardEvent #|| typeof(ev) <: SDL2.QuitEvent
-		break;
-	end
+run(sim, gui, t_stop)
 
-
-	println(count, " #migrants: ", length(model.migrants), 
-		" #arrived: ", length(model.people) - length(model.migrants))
-
-	copyto!(canvas, canvas_bg)
-	draw_people!(canvas, model)
-	update!(top_left, canvas.pixels)
-
-	if count > 10
-		clear!(canvas)
-		draw_visitors!(canvas, model)
-		update!(top_right, canvas.pixels)
-		count = 0
-	end
-	count += 1
-
-	clear!(canvas)
-	agent = draw_rand_knowledge!(canvas, model)
-	update!(bot_left, canvas.pixels)
-
-	clear!(canvas)
-	draw_rand_social!(canvas, model, 3, agent)
-	update!(bot_right, canvas.pixels)
-
-	SDL2.RenderClear(renderer)
-	render(top_left)
-	render(top_right)
-	render(bot_left)
-	render(bot_right)
-    SDL2.RenderPresent(renderer)
-    sleep(0.001)
-end
 SDL2.Quit()
