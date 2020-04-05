@@ -15,7 +15,14 @@ function quality(loc :: InfoLocation, par)
 		discounted(loc.resources) * par.qual_weight_res
 end
 
-function costs_quality(loc :: InfoLocation, par)
+function quality(loc :: Location, par)
+	# [0:1]
+	loc.quality + 
+		# [0:1]
+		loc.resources * par.qual_weight_res
+end
+
+function costs_quality(loc, par)
 	(1.0 / par.path_penalty_loc + 2.0) / 
 		(1.0 / par.path_penalty_loc + quality(loc, par))
 end

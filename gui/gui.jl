@@ -42,6 +42,7 @@ function update!(p :: Panel, buf)
 	SDL2.UpdateTexture(p.texture, C_NULL, buf, Int32(p.rect.w * 4))
 end
 
+update!(p :: Panel, c :: Canvas) = update!(p, c.pixels)
 
 function render(p :: Panel)
 	SDL2.RenderCopy(p.renderer, p.texture, C_NULL, pointer_from_objref(p.rect))
@@ -84,36 +85,36 @@ function render!(gui)
 end
 
 
-function draw(model, gui, focus_agent, clear=false)
+function draw(model, gui, focus_agent, scales, clear=false)
 	copyto!(gui.canvas, gui.canvas_bg)
 	draw_people!(gui.canvas, model)
-	update!(gui.tl, gui.canvas.pixels)
+	update!(gui.tl, gui.canvas)
 
 	if clear
 		clear!(gui.canvas)
 		draw_visitors!(gui.canvas, model)
-		update!(gui.tr, gui.canvas.pixels)
+		update!(gui.tr, gui.canvas)
 		count = 0
 	end
 
 	clear!(gui.canvas)
-	agent = draw_rand_knowledge!(gui.canvas, model, focus_agent)
-	update!(gui.bl, gui.canvas.pixels)
+	agent = draw_rand_knowledge!(gui.canvas, model, scales, focus_agent)
+	update!(gui.bl, gui.canvas)
 
 	clear!(gui.canvas)
 	draw_rand_social!(gui.canvas, model, 3, agent)
-	update!(gui.br, gui.canvas.pixels)
+	update!(gui.br, gui.canvas)
 end
 
 
-function run(sim, gui, t_stop)
+function run(sim, gui, t_stop, scales)
 	t = 0.0
 	step = 1.0
 	start(sim)
 
 	focus_agent = nothing
 
-	count = 0
+	count = 1
 	while true
 		t1 = time()
 		upto!(sim.scheduler, t + 1.0)
@@ -145,7 +146,7 @@ function run(sim, gui, t_stop)
 		end
 
 		t1 = time()
-		draw(sim.model, gui, focus_agent, count==0)
+		draw(sim.model, gui, focus_agent, scales, count==1)
 		count = count % 10 + 1
 		#println("dt: ", time() - t1)
 		render!(gui)
@@ -154,6 +155,7 @@ function run(sim, gui, t_stop)
 end
 
 
+include("../analysis.jl")
 include("../base/simulation.jl")
 include("../base/draw.jl")
 include("../base/args.jl")
@@ -168,6 +170,15 @@ const arg_settings = ArgParseSettings("run simulation", autofix_names=true)
 		help = "at which time to stop the simulation" 
 		arg_type = Float64 
 		default = 0.0
+	"--city-file"
+		help = "file name for city data output"
+		default = "cities.txt"
+	"--link-file"
+		help = "file name for link data output"
+		default = "links.txt"
+	"--log-file", "-l"
+		help = "file name for log"
+		default = "log.txt"
 end
 
 add_arg_group!(arg_settings, "simulation parameters")
@@ -189,9 +200,19 @@ const sim = Simulation(model, parameters)
 
 const gui = setup_Gui(1024)
 
-clear!(gui.canvas_bg)
-draw_bg!(gui.canvas_bg, sim.model)
+const logf = open(args[:log_file], "w")
+const cityf = open(args[:city_file], "w")
+const linkf = open(args[:link_file], "w")
 
-run(sim, gui, t_stop)
+clear!(gui.canvas_bg)
+scales = draw_bg!(gui.canvas_bg, sim.model, parameters)
+
+run(sim, gui, t_stop, scales)
+
+analyse_world(sim.model, cityf, linkf)
+
+close(logf)
+close(cityf)
+close(linkf)
 
 SDL2.Quit()
