@@ -12,7 +12,7 @@ end
 
 n_arrived(model) = length(model.people) - length(model.migrants)
 
-
+rate_dep(t, par) = min(t / par.dep_warmup, 1.0) * par.rate_dep + 1.0
 
 # TODO this could be way more sophisticated
 #function step_city!(c, step, par)

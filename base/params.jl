@@ -18,6 +18,8 @@ const VF = Vector{Float64}
 
 	"number of departures per time step"
 	rate_dep	 	:: Float64	= 20
+	"time for departures to reach full rate"
+	dep_warmup		:: Float64	= 1.0
 	"number of exits"
 	n_exits			:: Int		= 10
 	"number of starting positions"
