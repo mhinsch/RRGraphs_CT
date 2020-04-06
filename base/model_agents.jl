@@ -406,7 +406,11 @@ function plan_costs!(agent, par)
 
 	for l in loc.links
 		other = otherside(l, loc)
-		q = local_quality(other, par) * par.qual_tol_frict / (par.qual_tol_frict + disc_friction(l))
+
+		q = known(other) ?	
+			local_quality(other, par) * par.qual_tol_frict / (par.qual_tol_frict + disc_friction(l)) :
+			0.0		# Unknown has q<0 since Nowhere == (-1.0, -1.0)
+
 		push!(quals, q + prev)
 		prev = quals[end]
 	end
@@ -415,9 +419,9 @@ function plan_costs!(agent, par)
 	q = local_quality(loc, par)
 	push!(quals, q + prev)
 
-	best = 0
+	best = length(quals)
 	if quals[end] > 0.0
-		r = rand() * (quals[end] - 0.000001)
+		r = rand() * quals[end]
 		best = findfirst(x -> x>r, quals)
 	end
 
