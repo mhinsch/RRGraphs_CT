@@ -37,7 +37,7 @@ include(get_parfile())
 
 const arg_settings = ArgParseSettings("run simulation", autofix_names=true)
 
-@add_arg_table arg_settings begin
+@add_arg_table! arg_settings begin
 	"--stop-time", "-t"
 		help = "at which time to stop the simulation" 
 		arg_type = Float64
@@ -59,7 +59,7 @@ const arg_settings = ArgParseSettings("run simulation", autofix_names=true)
 		default = "log.txt"
 end
 
-add_arg_group(arg_settings, "simulation parameters")
+add_arg_group!(arg_settings, "simulation parameters")
 fields_as_args!(arg_settings, Params)
 
 const args = parse_args(arg_settings, as_symbols=true)
