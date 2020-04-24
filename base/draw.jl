@@ -32,12 +32,16 @@ scale(x, xs) = floor(Int, x*xs) + 1
 
 scale(p :: Pos, c :: Canvas) = scale(p.x, xsize(c)), scale(p.y, ysize(c))
 
-function draw_link!(canvas, link, value)
+function draw_link!(canvas, link, col)
 	xs, ys = size(canvas)
 	x1, y1 = scale(link.l1.pos.x, xs), scale(link.l1.pos.y, ys)
 	x2, y2 = scale(link.l2.pos.x, xs), scale(link.l2.pos.y, ys)
-	col :: UInt32 = rgb(value * 255, (1.0-value) * 255, 0)
 	line(canvas, x1, y1, x2, y2, col)
+end
+
+function draw_link_v!(canvas, link, value)
+	col :: UInt32 = rgb(value * 255, (1.0-value) * 255, 0)
+	draw_link!(canvas, link, col)
 end
 		
 
@@ -47,14 +51,7 @@ function draw_city!(canvas, city, sz = 1, col = nothing)
 	x = scale(city.pos.x, xs)
 	y = scale(city.pos.y, ys)
 
-	xmi = max(1, x-sz)
-	xma = min(xs, x+sz)
-	ymi = max(1, y-sz)
-	yma = min(ys, y+sz)
-
-	for x in xmi:xma, y in ymi:yma
-		put(canvas, x, y, col == nothing ? blue(255) : col)
-	end
+	fillRectC(canvas, x-sz, y-sz, 2*sz+1, 2*sz+1, col == nothing ? blue(255) : col)
 end
 
 
@@ -77,7 +74,7 @@ function draw_bg!(canvas, model, par)
 	for i in length(model.world.links):-1:1
 		link = model.world.links[i]
 		frict = (link.friction/link.distance - mif) / (maf - mif)
-		draw_link!(canvas, link, 1.0 - frict)
+		draw_link_v!(canvas, link, 1.0 - frict)
 	end
 
 	maq = maximum(l -> costs_quality(l, par), model.world.cities)
@@ -105,7 +102,7 @@ function draw_visitors!(canvas, model)
 
 	for link in model.world.links
 		val = link.count / ma
-		draw_link!(canvas, link, 1.0 - val)
+		draw_link_v!(canvas, link, 1.0 - val)
 	end
 
 	ma = maximum(c -> c.count, model.world.cities)
@@ -134,7 +131,7 @@ function draw_rand_knowledge!(canvas, model, scales, agent=nothing)
 		if known(l) && known(l.l1) && known(l.l2)
 #			frict = (discounted(l.friction)/model.world.links[l.id].distance - scales.min_f) / 
 #				(scales.max_f - scales.min_f)
-			draw_link!(canvas, l, limit(0.0, 1.0 - accuracy(l, model.world.links[l.id]), 1.0)) 
+			draw_link_v!(canvas, l, limit(0.0, 1.0 - accuracy(l, model.world.links[l.id]), 1.0)) 
 		end
 	end
 
@@ -150,7 +147,7 @@ function draw_rand_knowledge!(canvas, model, scales, agent=nothing)
 	for c in agent.plan
 		draw_city!(canvas, c, 2, WHITE)
 		if known(prev)
-			draw_link!(canvas, find_link(prev, c), 1.0)
+			draw_link!(canvas, find_link(prev, c), WHITE)
 		end
 		prev = c
 	end
@@ -191,7 +188,14 @@ function draw_rand_social!(canvas, model, depth=1, agent=nothing)
 					continue
 				end
 				xo, yo = scale(o.loc.pos, canvas)
-				line(canvas, x, y, xo, yo, rgb(v, 255-v, 0))
+				if d == 1
+					line(canvas, x, y, xo, yo, rgb(v, 255-v, 0))
+				else
+					linePat(canvas, x, y, xo, yo, 2, 10, rgb(v, 255-v, 0))
+				end
+				
+				fillRectC(canvas, xo-1, yo-1, 3, 3, rgb(v, 255-v, 0))
+
 				push!(done, o)
 
 				if d < depth

@@ -1,6 +1,7 @@
 module SSDL
 
-export Canvas, xsize, ysize, clear!, put, line, alpha, red, green, blue, rgb, argb, WHITE,
+export Canvas, xsize, ysize, clear!, put, line, fillRectC, linePat,
+	alpha, red, green, blue, rgb, argb, WHITE,
 	bresenham
 
 uint(f) = floor(UInt32, f)
@@ -17,11 +18,39 @@ function put(canvas::Canvas, x, y, colour::UInt32)
 	canvas.pixels[(x-1)*canvas.ysize + y] = colour
 end
 
+function fillRectC(canvas::Canvas, x, y, w, h, colour::UInt32)
+	xs, ys = size(canvas)
+
+	xmi = max(1, x)
+	xma = min(xs, x+w-1)
+	ymi = max(1, y)
+	yma = min(ys, y+h-1)
+
+	for xx in xmi:xma
+		for yy in ymi:yma
+			put(canvas, xx, yy, colour)
+		end
+	end
+end
+
 function line(canvas::Canvas, x1, y1, x2, y2, col::UInt32)
 	bresenham(x1, y1, x2, y2) do x, y
 		put(canvas, x, y, col)
 	end
 end
+
+function linePat(canvas::Canvas, x1, y1, x2, y2, on, off, col::UInt32)
+	count = 1
+	bresenham(x1, y1, x2, y2) do x, y
+		if count <= on
+			put(canvas, x, y, col)
+		else
+			count = count % (on+off) 
+		end
+		count += 1
+	end
+end
+
 
 xsize(canvas::Canvas) = canvas.xsize
 ysize(canvas::Canvas) = canvas.ysize
