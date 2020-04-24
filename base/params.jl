@@ -112,6 +112,8 @@ const VF = Vector{Float64}
 	qual_weight_res	:: Float64 	= 0.1
 	"tolerance towards friction when looking for local improvement"
 	qual_tol_frict	:: Float64	= 2.0
+	"bias of choice towards higher quality"
+	qual_bias		:: Float64	= 1.0
 	"effect of low location quality on path costs"
 	path_penalty_loc :: Float64 = 1.0
 

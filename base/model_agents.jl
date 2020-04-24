@@ -411,13 +411,13 @@ function plan_costs!(agent, par)
 			local_quality(other, par) * par.qual_tol_frict / (par.qual_tol_frict + disc_friction(l)) :
 			0.0		# Unknown has q<0 since Nowhere == (-1.0, -1.0)
 
-		push!(quals, q + prev)
+		push!(quals, q^par.qual_bias + prev)
 		prev = quals[end]
 	end
 
 	# add current location, might be best option
 	q = local_quality(loc, par)
-	push!(quals, q + prev)
+	push!(quals, q^par.qual_bias + prev)
 
 	best = length(quals)
 	if quals[end] > 0.0
