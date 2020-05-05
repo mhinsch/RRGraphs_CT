@@ -204,31 +204,33 @@ struct InfoPars
 	convince :: Float64
 	convert :: Float64
 	confuse :: Float64
-	error :: Float64
 end
 
+function loc_belief_error(v::TrustedF, par)
+	TrustedF(
+		max(0.0, v.value + unf_delta(par.error)),
+		limit(0.000001, v.trust + unf_delta(par.error), 0.99999))
+end
+
+function link_belief_error(v::TrustedF, par)
+	TrustedF(
+		max(0.0, v.value + unf_delta(par.error_frict)),
+		limit(0.000001, v.trust + unf_delta(par.error), 0.99999))
+end
 
 function receive_belief(self::TrustedF, other::TrustedF, par)
-	# perceived values after error
-	t_pcv = limit(0.000001, other.trust + unf_delta(par.error), 0.99999)
-	# use * as value might have range outside of [0, 1]
-	v_pcv = max(0.0, other.value + unf_delta(par.error))
-
-	receive_belief(self, t_pcv, v_pcv, par)
+	TrustedF(
+		receive_belief(
+			self.trust, self.value, 
+			other.trust, other.value, 
+			par.convince, par.convert, par.confuse)...)
 end
 
-function receive_belief(self::TrustedF, t_pcv, v_pcv, par)
+function receive_belief(t, v, t_pcv, v_pcv, ci, ce, cu)
+	d = 1.0 - t		# doubt
 	d_pcv = 1.0 - t_pcv
 
-	t = self.trust		# trust
-	d = 1.0 - t		# doubt
-	v = self.value
-
 	dist_pcv = abs(v-v_pcv) / (v + v_pcv + 0.00001)
-
-	ci = par.convince
-	ce = par.convert 
-	cu = par.confuse
 
 	# sum up values according to area of overlap between 1 and 2
 	# from point of view of 1:
@@ -245,19 +247,17 @@ function receive_belief(self::TrustedF, t_pcv, v_pcv, par)
 	v_ = t * d_pcv * v + 					d * t_pcv * ci * v_pcv + 
 		t * t_pcv * (1.0 - cu * dist_pcv) * ((1.0 - ce) * v + ce * v_pcv)
 
-	limit(0.000001, d_, 0.99999), v_
+	t_ = 1.0 - limit(0.000001, d_, 0.99999)
+
+	v_ / t_, t_
 end
 
-function exchange_beliefs(val1::TrustedF, val2::TrustedF, par1, par2)
+function exchange_beliefs(val1::TrustedF, val2::TrustedF, err_f, par1, par2)
 	if val1.trust == 0.0 && val2.trust == 0.0
 		return val1, val2
 	end
 
-	d1_, v1_ = receive_belief(val1, val2, par1)
-
-	d2_, v2_ = receive_belief(val2, val1, par2)
-
-	TrustedF(v1_ / (1.0-d1_), 1.0 - d1_), TrustedF(v2_ / (1.0-d2_), 1.0 - d2_)
+	receive_belief(val1, err_f(val2), par1), receive_belief(val2, err_f(val1), par2)
 end
 
 
@@ -275,8 +275,8 @@ function exchange_loc_info(loc, info1, info2, a1, a2, p1, p2, par)
 
 	# both have knowledge at l, compare by trust and transfer accordingly
 	if known(info1) && known(info2)
-		res1, res2 = exchange_beliefs(info1.resources, info2.resources, p1, p2)
-		qual1, qual2 = exchange_beliefs(info1.quality, info2.quality, p1, p2)
+		res1, res2 = exchange_beliefs(info1.resources, info2.resources, x->loc_belief_error(x, par), p1, p2)
+		qual1, qual2 = exchange_beliefs(info1.quality, info2.quality, x->loc_belief_error(x, par), p1, p2)
 		info1.resources = res1
 		info1.quality = qual1
 		# only a2 can have arrived
@@ -307,7 +307,7 @@ function exchange_link_info(link, info1, info2, a1, a2, p1, p2, par)
 	
 	# both have knowledge at l, compare by trust and transfer accordingly
 	if known(info1) && known(info2)
-		frict1, frict2 = exchange_beliefs(info1.friction, info2.friction, p1, p2)
+		frict1, frict2 = exchange_beliefs(info1.friction, info2.friction, x->link_belief_error(x, par), p1, p2)
 		info1.friction = frict1
 		if !arrived(a2)
 			info2.friction = frict2
@@ -317,11 +317,10 @@ end
 
 
 function exchange_info!(a1::Agent, a2::Agent, world::World, par)
-	p2 = InfoPars(par.convince, par.convert, par.confuse, par.error)
+	p2 = InfoPars(par.convince, par.convert, par.confuse)
 	# values a1 experiences, have to be adjusted if a2 has already arrived
 	p1 = if arrived(a2)
-			InfoPars(par.convince^(1.0/par.weight_arr), par.convert^(1.0/par.weight_arr), par.confuse,
-				par.error)
+			InfoPars(par.convince^(1.0/par.weight_arr), par.convert^(1.0/par.weight_arr), par.confuse)
 		else
 			p2
 		end
@@ -332,9 +331,6 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		end
 		exchange_loc_info(world.cities[l], a1.info_loc[l], a2.info_loc[l], a1, a2, p1, p2, par)
 	end
-
-#	p1 = InfoPars(p1.convince, p1.confuse, p1.convert, par.error_frict)
-#	p2 = InfoPars(p2.convince, p2.confuse, p2.convert, par.error_frict)
 
 	for l in eachindex(a1.info_link)
 		if rand() > par.p_transfer_info

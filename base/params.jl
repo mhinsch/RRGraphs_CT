@@ -137,6 +137,8 @@ const VF = Vector{Float64}
 	confuse			:: Float64	= 0.3
 	"stochastic error when transmitting information"
 	error			:: Float64 	= 0.1
+	"stochastic error when transmitting friction information"
+	error_frict			:: Float64 	= 0.5
 	"weight of opinion of arrived agents"
 	weight_arr		:: Float64	= 1.0
 end
