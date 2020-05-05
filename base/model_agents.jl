@@ -209,21 +209,26 @@ end
 
 
 function receive_belief(self::TrustedF, other::TrustedF, par)
-	ci = par.convince
-	ce = par.convert 
-	cu = par.confuse
+	# perceived values after error
+	t_pcv = limit(0.000001, other.trust + unf_delta(par.error), 0.99999)
+	# use * as value might have range outside of [0, 1]
+	v_pcv = max(0.0, other.value + unf_delta(par.error))
+
+	receive_belief(self, t_pcv, v_pcv, par)
+end
+
+function receive_belief(self::TrustedF, t_pcv, v_pcv, par)
+	d_pcv = 1.0 - t_pcv
 
 	t = self.trust		# trust
 	d = 1.0 - t		# doubt
 	v = self.value
 
-	# perceived values after error
-	t_pcv = limit(0.000001, other.trust + unf_delta(par.error), 0.99999)
-	d_pcv = 1.0 - t_pcv
-	# use * as value might have range outside of [0, 1]
-	v_pcv = max(0.0, other.value * (1.0 + unf_delta(par.error)))
-	
 	dist_pcv = abs(v-v_pcv) / (v + v_pcv + 0.00001)
+
+	ci = par.convince
+	ce = par.convert 
+	cu = par.confuse
 
 	# sum up values according to area of overlap between 1 and 2
 	# from point of view of 1:

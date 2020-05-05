@@ -15,7 +15,8 @@ using DataStructures
 function to find a nodes' neighbours has to be provided in `each_neighbour`.
 Returns a vector `target`, node, ... and the number of iterations used
 to find the path in a tuple."
-function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbour)
+function path_Astar(start, target, path_costs::PCF, path_costs_estimate::PCEF, each_neighbour::EN) where
+	{PCF, PCEF, EN}
 	ELType = typeof(start)
 
 	done = Set{ELType}()
