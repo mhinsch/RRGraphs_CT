@@ -200,12 +200,6 @@ end
 # ********************
 
 
-struct InfoPars
-	convince :: Float64
-	convert :: Float64
-	confuse :: Float64
-end
-
 function loc_belief_error(v::TrustedF, par)
 	TrustedF(
 		max(0.0, v.value + unf_delta(par.error)),
@@ -216,48 +210,6 @@ function link_belief_error(v::TrustedF, par)
 	TrustedF(
 		max(0.0, v.value + unf_delta(par.error_frict)),
 		limit(0.000001, v.trust + unf_delta(par.error), 0.99999))
-end
-
-function receive_belief(self::TrustedF, other::TrustedF, par)
-	TrustedF(
-		receive_belief(
-			self.trust, self.value, 
-			other.trust, other.value, 
-			par.convince, par.convert, par.confuse)...)
-end
-
-function receive_belief(t, v, t_pcv, v_pcv, ci, ce, cu)
-	d = 1.0 - t		# doubt
-	d_pcv = 1.0 - t_pcv
-
-	dist_pcv = abs(v-v_pcv) / (v + v_pcv + 0.00001)
-
-	# sum up values according to area of overlap between 1 and 2
-	# from point of view of 1:
-	# doubt x doubt -> doubt
-	# trust x doubt -> trust
-	# doubt x trust -> doubt / convince
-	# trust x trust -> trust / convert / confuse (doubt)
-
-	#					doubt x doubt		doubt x trust
-	d_ = 					d * d_pcv + 	d * t_pcv * (1.0 - ci) + 
-	#	trust x trust
-		t * t_pcv * cu * dist_pcv
-	#	trust x doubt
-	v_ = t * d_pcv * v + 					d * t_pcv * ci * v_pcv + 
-		t * t_pcv * (1.0 - cu * dist_pcv) * ((1.0 - ce) * v + ce * v_pcv)
-
-	t_ = 1.0 - limit(0.000001, d_, 0.99999)
-
-	v_ / t_, t_
-end
-
-function exchange_beliefs(val1::TrustedF, val2::TrustedF, err_f, par1, par2)
-	if val1.trust == 0.0 && val2.trust == 0.0
-		return val1, val2
-	end
-
-	receive_belief(val1, err_f(val2), par1), receive_belief(val2, err_f(val1), par2)
 end
 
 
@@ -317,10 +269,10 @@ end
 
 
 function exchange_info!(a1::Agent, a2::Agent, world::World, par)
-	p2 = InfoPars(par.convince, par.convert, par.confuse)
+	p2 = BeliefPars(par.convince, par.convert, par.confuse)
 	# values a1 experiences, have to be adjusted if a2 has already arrived
 	p1 = if arrived(a2)
-			InfoPars(par.convince^(1.0/par.weight_arr), par.convert^(1.0/par.weight_arr), par.confuse)
+			BeliefPars(par.convince^(1.0/par.weight_arr), par.convert^(1.0/par.weight_arr), par.confuse)
 		else
 			p2
 		end

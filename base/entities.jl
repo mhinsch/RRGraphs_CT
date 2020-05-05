@@ -1,4 +1,5 @@
 using Util
+using Beliefs
 
 include("world_util.jl")
 
