@@ -35,6 +35,10 @@ const I = Iterators
 	# only migrants can have a plan
 	@for a in model.migrants begin
 		@stat("n_plan", 	MV, MM) <| Float64(length(a.plan))
+		@stat("acc_c_m", 	MV, MM) <| acc_cities_per_agent(a, model.world)
+		@stat("acc_l_m", 	MV, MM) <| acc_links_per_agent(a, model.world)
+		@stat("n_loc_m", 	MV, MM) <| Float64(a.n_locs)
+		@stat("n_link_m", 	MV, MM) <| Float64(a.n_links)
 	end
 
 	@for ex in model.world.exits begin
