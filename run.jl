@@ -44,7 +44,7 @@ const arg_settings = ArgParseSettings("run simulation", autofix_names=true)
 		default = 50.0
 	"--par-file", "-p"
 		help = "file name for parameter output"
-		default = "params.txt"
+		default = "params_used.jl"
 #	"--model-file"
 #		help = "file name for model data output"
 #		default = "data.txt"
