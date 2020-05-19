@@ -51,6 +51,10 @@ const VF = Vector{Float64}
 	n_ini_contacts	:: Int		= 10
 	"amount of capital when entering"
 	ini_capital 	:: Float64 	= 2000.0
+	"set of always unknown cities"
+	p_unknown_city	:: Float64 = 0.0
+	"set of always unknown links"
+	p_unknown_link	:: Float64 = 0.0
 	"prob. to know a target when entering"
 	p_know_target	:: Float64	= 0.0
 	"prob. to know a city (per city)"

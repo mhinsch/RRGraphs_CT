@@ -1,5 +1,3 @@
-using Random
-
 push!(LOAD_PATH, pwd())
 
 include("base/simulation.jl")
@@ -25,13 +23,5 @@ function basic_setup(argv = [])
 		p = Params()
 	end
 
-	Random.seed!(p.rand_seed_world)
-	w = create_world(p);
-
-	Random.seed!(p.rand_seed_sim)
-	m = Model(w, Agent[], Agent[]);
-
-	sim = Simulation(m, p)
-	
-	p, sim
+	p, Simulation(setup_model(p), p)
 end

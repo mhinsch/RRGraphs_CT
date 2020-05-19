@@ -1,7 +1,5 @@
 #!/usr/bin/env julia
 
-using Random
-
 push!(LOAD_PATH, pwd())
 
 include("analysis.jl")
@@ -10,13 +8,7 @@ include("base/args.jl")
 
 
 function run(p, stop, log_file)
-	Random.seed!(p.rand_seed_world)
-	w = create_world(p);
-
-	Random.seed!(p.rand_seed_sim)
-	m = Model(w, Agent[], Agent[]);
-
-	sim = Simulation(m, p)
+	sim = Simulation(setup_model(p), p)
 
 	t = 0.0
 	start(sim)

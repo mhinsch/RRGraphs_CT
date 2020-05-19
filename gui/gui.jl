@@ -188,15 +188,7 @@ const args = parse_args(arg_settings, as_symbols=true)
 const parameters = create_from_args(args, Params)
 const t_stop = args[:stop_time] 
 
-
-using Random
-
-Random.seed!(parameters.rand_seed_world)
-const world = create_world(parameters)
-
-Random.seed!(parameters.rand_seed_sim)
-const model = Model(world, Agent[], Agent[])
-const sim = Simulation(model, parameters)
+const sim = Simulation(setup_model(parameters), parameters)
 
 const gui = setup_Gui(1024)
 

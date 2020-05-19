@@ -1,14 +1,44 @@
 using Util
 using Distributions
+using Random
 
 include("entities.jl")
 include("setup.jl")
 
 mutable struct Model
 	world :: World
+	prior_cities :: Vector{Location}
+	prior_links :: Vector{Link}
 	people :: Vector{Agent}
 	migrants :: Vector{Agent}
 end
+
+function setup_model(par)
+	Random.seed!(par.rand_seed_world)
+	world = create_world(par)
+
+	m = Model(world, Location[], Link[], Agent[], Agent[])
+
+	for c in world.cities
+		if rand() < par.p_unknown_city
+			continue
+		end
+		push!(m.prior_cities, c)
+	end
+
+	for l in world.links
+		if rand() < par.p_unknown_link
+			continue
+		end
+		push!(m.prior_links, l)
+	end
+
+	# TODO: this is ugly
+	Random.seed!(par.rand_seed_sim)
+
+	m
+end
+
 
 n_arrived(model) = length(model.people) - length(model.migrants)
 
@@ -48,13 +78,13 @@ function add_migrant!(model::Model, par)
 		end
 	end
 
-	for c in model.world.cities
+	for c in model.prior_cities
 		if rand() < par.p_know_city
 			explore_at!(agent, model.world, c, par.speed_expl_ini, false, par)
 		end
 	end
 
-	for l in model.world.links
+	for l in model.prior_links
 		if (knows(agent, l.l1) || knows(agent, l.l2)) && rand() < par.p_know_link
 			explore_at!(agent, model.world, l, (knows(agent, l.l1) ? l.l1 : l.l2), 
 				par.speed_expl_ini, par)
