@@ -213,3 +213,27 @@ accuracy(li::InfoLocation, lr::Location) =
 	1.0 - dist_eucl(li.quality.value, li.resources.value, lr.quality, lr.resources)
 
 accuracy(li::InfoLink, lr::Link) = 1.0 - abs(li.friction.value - lr.friction)/lr.distance
+
+
+function dump(file, agent)
+	println(file, "loc:\t", agent.loc.id)
+	println(file, "link:\t", agent.link.id)
+	println(file, "n_locs:\t", agent.n_locs)
+	println(file, "info_loc:")
+	for l in agent.info_loc
+		if !known(l)
+			println(file, "\tUNKNOWN")
+			continue
+		end
+		println(file, "\t", l.id, "\t", l.quality.value, "\t", l.quality.trust)
+	end
+	println(file, "info_link")
+	for l in agent.info_link
+		if !known(l)
+			println(file, "\tUNKNOWN")
+			continue
+		end
+		println(file, "\t", l.id, "\t", l.friction.value, "\t", l.friction.trust)
+	end
+end
+

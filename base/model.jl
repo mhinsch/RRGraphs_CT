@@ -40,6 +40,26 @@ function setup_model(par)
 end
 
 
+function frict_limits(model)
+	maf = maximum(l -> l.friction/l.distance, model.world.links)
+	mif = minimum(l -> l.friction/l.distance, model.world.links)
+	maf, mif
+end
+
+function r_frict_limits(model)
+	maf = maximum(l -> l.friction, model.world.links)
+	mif = minimum(l -> l.friction, model.world.links)
+	maf, mif
+end
+
+function qual_limits(model, par)
+	maq = maximum(l -> costs_quality(l, par), model.world.cities)
+	miq = minimum(l -> costs_quality(l, par), model.world.cities)
+	maq, miq
+end
+
+
+
 n_arrived(model) = length(model.people) - length(model.migrants)
 
 rate_dep(t, par) = min(t / par.dep_warmup, 1.0) * par.rate_dep + 1.0

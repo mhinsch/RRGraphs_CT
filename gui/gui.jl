@@ -85,7 +85,7 @@ function render!(gui)
 end
 
 
-function draw(model, gui, focus_agent, scales, clear=false)
+function draw(model, gui, focus_agent, scales, k_draw_mode, clear=false)
 	copyto!(gui.canvas, gui.canvas_bg)
 	draw_people!(gui.canvas, model)
 	update!(gui.tl, gui.canvas)
@@ -98,7 +98,7 @@ function draw(model, gui, focus_agent, scales, clear=false)
 	end
 
 	clear!(gui.canvas)
-	agent = draw_rand_knowledge!(gui.canvas, model, scales, focus_agent)
+	agent = draw_rand_knowledge!(gui.canvas, model, scales, focus_agent, k_draw_mode)
 	update!(gui.bl, gui.canvas)
 
 	clear!(gui.canvas)
@@ -107,38 +107,70 @@ function draw(model, gui, focus_agent, scales, clear=false)
 end
 
 
-function run(sim, gui, t_stop, scales)
+function run(sim, gui, t_stop, scales, parameters)
 	t = 0.0
 	step = 1.0
 	start(sim)
 
 	focus_agent = nothing
+	k_draw_mode = ACCURACY
+	redraw_bg = true
+	pause = false
 
+	quit = false
 	count = 1
-	while true
-		t1 = time()
-		upto!(sim.scheduler, t + 1.0)
-		t += step
-		dt = time() - t1
+	while ! quit
+		if pause
+			sleep(0.03)
+		else
+			t1 = time()
+			upto!(sim.scheduler, t + 1.0)
+			t += step
+			dt = time() - t1
 
-		if dt > 0.1
-			step /= 1.1
-		elseif dt < 0.03
-			step *= 1.1
-		end
+			if dt > 0.1
+				step /= 1.1
+			elseif dt < 0.03
+				step *= 1.1
+			end
 
-		if t_stop > 0 && t >= t_stop
-			break
+			if t_stop > 0 && t >= t_stop
+				break
+			end
+
+			println(t, " #migrants: ", length(sim.model.migrants), 
+				" #arrived: ", length(sim.model.people) - length(sim.model.migrants))
 		end
 		
-		ev = SDL2.event()
-		
-		if typeof(ev) <: SDL2.KeyboardEvent #|| typeof(ev) <: SDL2.QuitEvent
-			break;
+		while (ev = SDL2.event()) != nothing
+			if typeof(ev) <: SDL2.KeyboardEvent #|| typeof(ev) <: SDL2.QuitEvent
+				if ev._type == SDL2.KEYDOWN
+					key = ev.keysym.sym
+					if key == SDL2.SDLK_ESCAPE || key == SDL2.SDLK_q
+						quit = true
+						break;
+					elseif key == SDL2.SDLK_k
+						k_draw_mode = KNOWL_DRAW_MODE((Int(k_draw_mode) + 1) % 4)
+						println("setting knowledge draw mode: ", k_draw_mode)
+						redraw_bg = true
+					elseif key == SDL2.SDLK_j
+						k_draw_mode = KNOWL_DRAW_MODE((Int(k_draw_mode) + 3) % 4)
+						println("setting knowledge draw mode: ", k_draw_mode)
+						redraw_bg = true
+					elseif key == SDL2.SDLK_r && length(sim.model.migrants) > 0
+						focus_agent = rand(sim.model.migrants)
+					elseif key == SDL2.SDLK_e && length(sim.model.migrants) > 0
+						focus_agent = sim.model.people[end]
+					elseif key == SDL2.SDLK_d && focus_agent != nothing
+						open("agent.txt", "w") do file
+							dump(file, focus_agent)
+						end
+					elseif key == SDL2.SDLK_p || key == SDL2.SDLK_SPACE
+						pause = ! pause
+					end
+				end
+			end
 		end
-
-		println(t, " #migrants: ", length(sim.model.migrants), 
-			" #arrived: ", length(sim.model.people) - length(sim.model.migrants))
 
 		if (focus_agent == nothing || arrived(focus_agent)) &&
 			length(sim.model.migrants) > 0
@@ -146,7 +178,11 @@ function run(sim, gui, t_stop, scales)
 		end
 
 		t1 = time()
-		draw(sim.model, gui, focus_agent, scales, count==1)
+		if redraw_bg
+			draw_bg!(gui.canvas_bg, sim.model, scales, parameters, k_draw_mode)
+			redraw_bg = false
+		end
+		draw(sim.model, gui, focus_agent, scales, k_draw_mode, count==1)
 		count = count % 10 + 1
 		#println("dt: ", time() - t1)
 		render!(gui)
@@ -197,9 +233,14 @@ const cityf = open(args[:city_file], "w")
 const linkf = open(args[:link_file], "w")
 
 clear!(gui.canvas_bg)
-scales = draw_bg!(gui.canvas_bg, sim.model, parameters)
+const scales = prop_scales(frict_limits(sim.model)..., r_frict_limits(sim.model)..., 
+	qual_limits(sim.model, parameters)...)
 
-run(sim, gui, t_stop, scales)
+println("max(f): ", scales.max_f, "\t min(f): ", scales.min_f)
+println("max(real f): ", scales.max_rf, "\t min(real f): ", scales.min_rf)
+println("max(q): ", scales.max_q, "\t min(q): ", scales.min_q)
+
+run(sim, gui, t_stop, scales, parameters)
 
 analyse_world(sim.model, cityf, linkf)
 
